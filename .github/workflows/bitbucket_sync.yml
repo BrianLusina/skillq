@@ -1,0 +1,15 @@
+name: BitBucket RepoSync
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    name: Mirror to Bitbucket
+    uses: SanctumLabs/ci-workflows/.github/workflows/repo_sync.yml@main
+    secrets:
+      url: ${{ secrets.BITBUCKET_REPO_URL }}
+      username: ${{ secrets.BITBUCKET_USERNAME }}
+      token: ${{ secrets.BITBUCKET_ACCESS_TOKEN }}

@@ -1,0 +1,15 @@
+name: Gitlab RepoSync
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    name: Mirror to Gitlab
+    uses: SanctumLabs/ci-workflows/.github/workflows/repo_sync.yml@main
+    secrets:
+      url: ${{ secrets.GITLAB_REPO_URL }}
+      username: ${{ secrets.GITLAB_USERNAME }}
+      token: ${{ secrets.GITLAB_ACCESS_TOKEN }}

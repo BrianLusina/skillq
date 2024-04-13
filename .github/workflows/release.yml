@@ -1,0 +1,16 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows:
+      - "Build"
+    types:
+      - completed
+
+jobs:
+  release:
+    name: Release
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: SanctumLabs/ci-workflows/.github/workflows/release-semantic.yml@main
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}

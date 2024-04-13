@@ -1,0 +1,39 @@
+image: go:1.22.1
+
+include:
+  - project: sanctumlabs/tools/ci-workflows
+    file: .gitlab/templates/slack-notification.yml
+
+stages:
+  - lint
+  - test
+
+lint:
+  stage: lint
+  before_script:
+    - make setup-linting
+  script:
+    - make lint
+
+tests:
+  stage: test
+  needs:
+    - lint
+  script:
+    - make test
+
+slack-success:
+  before_script: [ ]
+  needs:
+    - job: lint
+      optional: true
+    - job: test
+      optional: true
+
+slack-failure:
+  before_script: [ ]
+  needs:
+    - job: lint
+      optional: true
+    - job: test
+      optional: true
