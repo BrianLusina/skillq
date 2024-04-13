@@ -1,3 +1,3 @@
-module app
+module github.com/BrianLusina/skillq/server/app
 
-go 1.22.1
+go 1.22

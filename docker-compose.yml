@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:7.0.8
+    container_name: skillq-mongodb
+    hostname: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: skillqUser
+      MONGO_INITDB_ROOT_PASSWORD: skillqPassword
+      MONGO_INITDB_DATABASE: skillqdb
+      MONGO_INITDB_USER: skillqUser
+      MONGO_INITDB_PASSWORD: skillqPassword
+    volumes:
+      - mongodb:/data/db
+
+  redis:
+    image: redis:7.2.4
+    container_name: skillq-redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/data
+
+volumes:
+  mongodb:
+  redis:
