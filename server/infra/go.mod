@@ -1,3 +1,3 @@
 module github.com/BrianLusina/skillq/server/infra
 
-go 1.22.1
+go 1.22
