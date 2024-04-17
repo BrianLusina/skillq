@@ -6,6 +6,11 @@ import (
 
 // UserRequest to create a new user
 type UserRequest struct {
+	Name     string
+	Email    string
+	Skills   []string
+	Image    string
+	JobTitle string
 }
 
 // UserResponse for returning a user

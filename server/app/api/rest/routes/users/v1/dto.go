@@ -20,7 +20,7 @@ type userResponseDto struct {
 
 // userRequestDto is the DTO for a user request
 type userRequestDto struct {
-	Name     string   `json:"name" binding:"required", validate:"required,min=2,max=24"`
+	Name     string   `json:"name" binding:"required" validate:"required,min=2,max=24"`
 	Email    string   `json:"email" binding:"required" validate:"email,required"`
 	Skills   []string `json:"skills" binding:"required"`
 	Image    string   `json:"image"`
