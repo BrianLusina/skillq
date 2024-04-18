@@ -15,8 +15,14 @@ type User struct {
 	// email of the user
 	email values.Email
 
-	// imageURL contains the image URL source & metadata
-	imageURL string
+	// hashedPassword is the user's hashed password
+	hashedPassword string
+
+	// imageData contains the image Bytes which is the actual image
+	imageData []byte
+
+	// imageUrl is the URL to the image
+	imageUrl string
 
 	// skills is the list of skills this user has
 	skills []string
@@ -35,8 +41,11 @@ type UserParams struct {
 	// Email is the user's email address
 	Email string
 
-	// ImageURL is the image URL for the user
-	ImageURL string
+	// Password is the hashed password when creating a user
+	Password string
+
+	// ImageData is the image URL for the user
+	ImageData []byte
 
 	// Skills is the list of skills this user has
 	Skills []string
@@ -46,20 +55,21 @@ type UserParams struct {
 }
 
 // New creates a new user entity & potentially an error
-func New(params UserParams) (*User, error) {
+func New(params UserParams) (User, error) {
 	entity := entity.NewEntity(params.EntityParams)
 	email, err := values.NewEmail(params.Email)
 	if err != nil {
-		return nil, err
+		return User{}, err
 	}
 
-	return &User{
-		Entity:   entity,
-		name:     params.Name,
-		email:    *email,
-		imageURL: params.ImageURL,
-		skills:   params.Skills,
-		jobTitle: params.JobTitle,
+	return User{
+		Entity:         entity,
+		name:           params.Name,
+		email:          *email,
+		imageData:      params.ImageData,
+		skills:         params.Skills,
+		jobTitle:       params.JobTitle,
+		hashedPassword: params.Password,
 	}, nil
 }
 
@@ -74,8 +84,12 @@ func (u *User) Email() string {
 }
 
 // ImageUrl returns the user's image URL
+func (u *User) ImageData() []byte {
+	return u.imageData
+}
+
 func (u *User) ImageUrl() string {
-	return u.imageURL
+	return u.imageUrl
 }
 
 // Skills is a list of all the skills a user has
