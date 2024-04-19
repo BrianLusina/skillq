@@ -11,20 +11,23 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
+	"github.com/BrianLusina/skillq/server/infra/messaging"
 	"github.com/BrianLusina/skillq/server/utils/security"
 )
 
 // userService is the structure for the business logic handling user management
 type userService struct {
-	userRepo repositories.UserRepoPort
+	userRepo         repositories.UserRepoPort
+	messagePublisher messaging.Publisher
 }
 
 var _ inbound.UserUseCase = (*userService)(nil)
 
 // New creates a new user service implementation of the user use case
-func New(userRepo repositories.UserRepoPort) inbound.UserUseCase {
+func New(userRepo repositories.UserRepoPort, messagePublisher messaging.Publisher) inbound.UserUseCase {
 	return &userService{
-		userRepo: userRepo,
+		userRepo:         userRepo,
+		messagePublisher: messagePublisher,
 	}
 }
 
@@ -82,6 +85,7 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 		return user.UserVerification{}, fmt.Errorf("failed to retrieve user %w", err)
 	}
 
+	// TODO: move this to utility that handles code generation
 	// generate 4 digit code
 	randNum := rand.Intn(10000)
 	code := fmt.Sprintf("%04d", randNum)
@@ -103,7 +107,10 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 		return user.UserVerification{}, fmt.Errorf("failed to create email verification: %w", err)
 	}
 
+	// TODO: create event types that will be used to publish events
 	// publish to queue/topic
+	// run in separate goroutine to avoid blocking calls on this execution path
+	go svc.messagePublisher.Publish(ctx, "", "", []byte{})
 
 	return verification, nil
 }
