@@ -3,6 +3,9 @@ package inbound
 import (
 	"context"
 	"time"
+
+	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
+	"github.com/BrianLusina/skillq/server/domain/id"
 )
 
 // UserRequest to create a new user
@@ -35,4 +38,10 @@ type UserResponse struct {
 type UserUseCase interface {
 	// CreateUser creates a new user in the system
 	CreateUser(context.Context, UserRequest) (*UserResponse, error)
+
+	// CreateEmailVerification creates user verification structure that is used to verify a user's email address
+	CreateEmailVerification(context.Context, id.UUID) (user.UserVerification, error)
+
+	// GetUserByUUID retrieves a user given their UUID
+	GetUserByUUID(context.Context, id.UUID) (*UserResponse, error)
 }

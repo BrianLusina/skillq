@@ -3,6 +3,7 @@ package usersvc
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
@@ -71,4 +72,43 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 	// send image task to persist to blob storage
 
 	return mapUserToUserResponse(*u), nil
+}
+
+// CreateEmailVerification creates a user verification & publishes it to a topic for a listener to send to a user
+func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id.UUID) (user.UserVerification, error) {
+	// retrieve the existingUser
+	existingUser, err := svc.userRepo.GetUserByUUID(ctx, userUUID)
+	if err != nil {
+		return user.UserVerification{}, fmt.Errorf("failed to retrieve user %w", err)
+	}
+
+	// generate 4 digit code
+	randNum := rand.Intn(10000)
+	code := fmt.Sprintf("%04d", randNum)
+
+	verificationId := id.NewUUID()
+	now := time.Now()
+
+	verification := user.NewVerification(user.UserVerificationParams{
+		ID:         verificationId,
+		UserId:     existingUser.UUID(),
+		Code:       code,
+		IsVerified: false,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	})
+
+	// create user verification
+	if _, err := svc.userRepo.CreateUserVerification(ctx, verification); err != nil {
+		return user.UserVerification{}, fmt.Errorf("failed to create email verification: %w", err)
+	}
+
+	// publish to queue/topic
+
+	return verification, nil
+}
+
+// GetUserByUUID retrieves a user given their UUID
+func (svc *userService) GetUserByUUID(ctx context.Context, userUUID id.UUID) (*inbound.UserResponse, error) {
+	panic("not yet implemented")
 }

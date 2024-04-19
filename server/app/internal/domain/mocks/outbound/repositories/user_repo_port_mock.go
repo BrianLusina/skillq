@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	user "github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
+	id "github.com/BrianLusina/skillq/server/domain/id"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -48,4 +49,34 @@ func (m *MockUserRepoPort) CreateUser(arg0 context.Context, arg1 user.User) (*us
 func (mr *MockUserRepoPortMockRecorder) CreateUser(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserRepoPort)(nil).CreateUser), arg0, arg1)
+}
+
+// CreateUserVerification mocks base method.
+func (m *MockUserRepoPort) CreateUserVerification(arg0 context.Context, arg1 user.UserVerification) (*user.UserVerification, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUserVerification", arg0, arg1)
+	ret0, _ := ret[0].(*user.UserVerification)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateUserVerification indicates an expected call of CreateUserVerification.
+func (mr *MockUserRepoPortMockRecorder) CreateUserVerification(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserVerification", reflect.TypeOf((*MockUserRepoPort)(nil).CreateUserVerification), arg0, arg1)
+}
+
+// GetUserByUUID mocks base method.
+func (m *MockUserRepoPort) GetUserByUUID(arg0 context.Context, arg1 id.UUID) (*user.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByUUID", arg0, arg1)
+	ret0, _ := ret[0].(*user.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByUUID indicates an expected call of GetUserByUUID.
+func (mr *MockUserRepoPortMockRecorder) GetUserByUUID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUUID", reflect.TypeOf((*MockUserRepoPort)(nil).GetUserByUUID), arg0, arg1)
 }
