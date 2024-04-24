@@ -8,7 +8,7 @@ type Amqp interface {
 	Declare(ctx context.Context, queue string, msgTTL int, dlx bool) error
 
 	// Publish publishes a message to a given topic
-	Publish(ctx context.Context, queue string, task string, body any) error
+	Publish(ctx context.Context, queue string, body any) error
 
 	// Consumes a message from a given queue
 	Consume(ctx context.Context, queue string) error

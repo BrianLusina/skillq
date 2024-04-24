@@ -3,16 +3,17 @@ package usersvc
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
+	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
 	"github.com/BrianLusina/skillq/server/infra/messaging"
 	"github.com/BrianLusina/skillq/server/utils/security"
+	"github.com/pkg/errors"
 )
 
 // userService is the structure for the business logic handling user management
@@ -71,6 +72,9 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 	}
 
 	// send verification email task
+	if _, err := svc.CreateEmailVerification(ctx, u.UUID()); err != nil {
+		return nil, errors.Wrapf(err, "failed to create user email verification")
+	}
 
 	// send image task to persist to blob storage
 
@@ -85,10 +89,7 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 		return user.UserVerification{}, fmt.Errorf("failed to retrieve user %w", err)
 	}
 
-	// TODO: move this to utility that handles code generation
-	// generate 4 digit code
-	randNum := rand.Intn(10000)
-	code := fmt.Sprintf("%04d", randNum)
+	code := security.GenerateCode()
 
 	verificationId := id.NewUUID()
 	now := time.Now()
@@ -107,10 +108,23 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 		return user.UserVerification{}, fmt.Errorf("failed to create email verification: %w", err)
 	}
 
-	// TODO: create event types that will be used to publish events
-	// publish to queue/topic
-	// run in separate goroutine to avoid blocking calls on this execution path
-	go svc.messagePublisher.Publish(ctx, "", "", []byte{})
+	event := events.UserEmailVerificationStarted{
+		UserUUID: existingUser.UUID(),
+		Email:    existingUser.Email(),
+		Name:     existingUser.Name(),
+		Code:     code,
+	}
+
+	eventBytes, err := events.EventToBytes(event)
+	if err != nil {
+		return user.UserVerification{}, errors.Wrapf(err, "failed to send user email verification")
+	}
+
+	// TODO: move to separate goroutine
+	// TODO: get the queue name from the message event
+	if err := svc.messagePublisher.Publish(ctx, "user_email_verification_queue", eventBytes); err != nil {
+		return user.UserVerification{}, errors.Wrapf(err, "failed to publish user email verified task")
+	}
 
 	return verification, nil
 }
