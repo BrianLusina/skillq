@@ -12,6 +12,7 @@ import (
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
 	"github.com/BrianLusina/skillq/server/infra/messaging"
+	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/utils/security"
 	"github.com/pkg/errors"
 )
@@ -20,15 +21,17 @@ import (
 type userService struct {
 	userRepo         repositories.UserRepoPort
 	messagePublisher messaging.Publisher
+	storageClient    storage.StorageClient
 }
 
 var _ inbound.UserUseCase = (*userService)(nil)
 
 // New creates a new user service implementation of the user use case
-func New(userRepo repositories.UserRepoPort, messagePublisher messaging.Publisher) inbound.UserUseCase {
+func New(userRepo repositories.UserRepoPort, messagePublisher messaging.Publisher, storageClient storage.StorageClient) inbound.UserUseCase {
 	return &userService{
 		userRepo:         userRepo,
 		messagePublisher: messagePublisher,
+		storageClient:    storageClient,
 	}
 }
 
@@ -53,12 +56,11 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 			},
 			Metadata: map[string]any{},
 		},
-		Name:      request.Name,
-		Email:     request.Email,
-		ImageData: request.Image,
-		Skills:    request.Skills,
-		JobTitle:  request.JobTitle,
-		Password:  hashedPassword,
+		Name:     request.Name,
+		Email:    request.Email,
+		Skills:   request.Skills,
+		JobTitle: request.JobTitle,
+		Password: hashedPassword,
 	})
 
 	if err != nil {
@@ -66,19 +68,26 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 	}
 
 	// create user
-	u, err := svc.userRepo.CreateUser(ctx, user)
+	createdUser, err := svc.userRepo.CreateUser(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// send verification email task
-	if _, err := svc.CreateEmailVerification(ctx, u.UUID()); err != nil {
+	// TODO: move to goroutine
+	// create email verification & send it
+	if _, err := svc.CreateEmailVerification(ctx, createdUser.UUID()); err != nil {
 		return nil, errors.Wrapf(err, "failed to create user email verification")
 	}
 
-	// send image task to persist to blob storage
+	// TODO: move to goroutine
+	// send image data to persist to blob storage & persist the image URL in the database
+	imageUrl, err := svc.UploadUserImage(ctx, createdUser.UUID(), request.Image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to upload user image data")
+	}
 
-	return mapUserToUserResponse(*u), nil
+	// update user image in response
+	return mapUserToUserResponse(createdUser.WithImage(imageUrl)), nil
 }
 
 // CreateEmailVerification creates a user verification & publishes it to a topic for a listener to send to a user
@@ -131,11 +140,11 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 
 // GetUserByUUID retrieves a user given their UUID
 func (svc *userService) GetUserByUUID(ctx context.Context, userUUID id.UUID) (*inbound.UserResponse, error) {
-	// retrieve the existingUser
 	existingUser, err := svc.userRepo.GetUserByUUID(ctx, userUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve user %w", err)
 	}
+
 	return &inbound.UserResponse{
 		UUID:      existingUser.UUID().String(),
 		KeyID:     existingUser.KeyID().String(),
@@ -150,4 +159,17 @@ func (svc *userService) GetUserByUUID(ctx context.Context, userUUID id.UUID) (*i
 		JobTitle:  existingUser.JobTitle(),
 		ImageUrl:  existingUser.ImageUrl(),
 	}, nil
+}
+
+func (svc *userService) UploadUserImage(ctx context.Context, userUUID id.UUID, imageData inbound.UserImageRequest) (string, error) {
+	url, err := svc.storageClient.Upload(ctx, storage.StorageItem{
+		Type:    imageData.Type,
+		Content: imageData.Content,
+		Name:    fmt.Sprintf("%s-image", userUUID),
+		Bucket:  fmt.Sprintf("%s-documents", userUUID),
+	})
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to store user image")
+	}
+	return url, nil
 }

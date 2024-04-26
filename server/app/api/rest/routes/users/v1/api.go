@@ -1,8 +1,6 @@
 package v1
 
-import (
-	"github.com/BrianLusina/skillq/server/app/internal/ports/inbound"
-)
+import "github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 
 type UserV1Api struct {
 	userService inbound.UserUseCase

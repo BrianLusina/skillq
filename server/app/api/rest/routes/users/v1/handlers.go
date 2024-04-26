@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/BrianLusina/skillq/server/app/api/rest/utils"
-	"github.com/BrianLusina/skillq/server/app/internal/ports/inbound"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+
 	"github.com/BrianLusina/skillq/server/infra/logger"
 )
 
@@ -25,9 +26,12 @@ func (api *UserV1Api) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	userRequest := inbound.UserRequest{
-		Name:     payload.Name,
-		Email:    payload.Email,
-		Image:    payload.Image,
+		Name:  payload.Name,
+		Email: payload.Email,
+		Image: inbound.UserImageRequest{
+			Type:    payload.Image.ImageType,
+			Content: payload.Image.Content,
+		},
 		Skills:   payload.Skills,
 		JobTitle: payload.JobTitle,
 	}

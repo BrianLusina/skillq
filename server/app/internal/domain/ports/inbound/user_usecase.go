@@ -14,8 +14,16 @@ type UserRequest struct {
 	Email    string
 	Password string
 	Skills   []string
-	Image    []byte
+	Image    UserImageRequest
 	JobTitle string
+}
+
+// UserImageRequest is the user image data
+type UserImageRequest struct {
+	// Type is the type of the image
+	Type string
+	// Content is the content of the image
+	Content string
 }
 
 // UserResponse for returning a user
@@ -44,4 +52,7 @@ type UserUseCase interface {
 
 	// GetUserByUUID retrieves a user given their UUID
 	GetUserByUUID(context.Context, id.UUID) (*UserResponse, error)
+
+	// UploadUserImage uploads a user image to blob storage & retrieves the image url
+	UploadUserImage(context.Context, id.UUID, UserImageRequest) (string, error)
 }

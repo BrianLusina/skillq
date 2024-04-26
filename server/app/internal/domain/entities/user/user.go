@@ -105,3 +105,9 @@ func (u *User) Skills() []string {
 func (u *User) JobTitle() string {
 	return u.jobTitle
 }
+
+// WithImage updates the image URL
+func (u User) WithImage(imageUrl string) User {
+	u.imageUrl = imageUrl
+	return u
+}
