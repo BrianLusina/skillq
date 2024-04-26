@@ -131,5 +131,23 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 
 // GetUserByUUID retrieves a user given their UUID
 func (svc *userService) GetUserByUUID(ctx context.Context, userUUID id.UUID) (*inbound.UserResponse, error) {
-	panic("not yet implemented")
+	// retrieve the existingUser
+	existingUser, err := svc.userRepo.GetUserByUUID(ctx, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve user %w", err)
+	}
+	return &inbound.UserResponse{
+		UUID:      existingUser.UUID().String(),
+		KeyID:     existingUser.KeyID().String(),
+		XID:       existingUser.XID().String(),
+		CreatedAt: existingUser.CreatedAt(),
+		UpdatedAt: existingUser.UpdatedAt(),
+		DeletedAt: existingUser.DeletedAt(),
+		Metadata:  existingUser.Metadata(),
+		Name:      existingUser.Name(),
+		Email:     existingUser.Email(),
+		Skills:    existingUser.Skills(),
+		JobTitle:  existingUser.JobTitle(),
+		ImageUrl:  existingUser.ImageUrl(),
+	}, nil
 }

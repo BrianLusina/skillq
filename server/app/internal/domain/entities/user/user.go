@@ -47,6 +47,9 @@ type UserParams struct {
 	// ImageData is the image URL for the user
 	ImageData []byte
 
+	// ImageUrl is the URL of the image
+	ImageUrl string
+
 	// Skills is the list of skills this user has
 	Skills []string
 
@@ -67,6 +70,7 @@ func New(params UserParams) (User, error) {
 		name:           params.Name,
 		email:          *email,
 		imageData:      params.ImageData,
+		imageUrl:       params.ImageUrl,
 		skills:         params.Skills,
 		jobTitle:       params.JobTitle,
 		hashedPassword: params.Password,

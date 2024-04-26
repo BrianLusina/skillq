@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
-	mockuserrepo "github.com/BrianLusina/skillq/server/app/internal/domain/mocks/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	mockuserrepo "github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories/mocks"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
 	mockmessagepublisher "github.com/BrianLusina/skillq/server/infra/messaging/mocks"
+	"github.com/go-faker/faker/v4"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -267,6 +268,64 @@ var _ = Describe("User Service", func() {
 				assert.Error(t, actualErr)
 			})
 
+		})
+	})
+
+	Context("Fetching an existing user", func() {
+		When("by UUID", func() {
+			It("should return error if there is a failure retrieving from repository", func() {
+				defer mockCtrl.Finish()
+
+				expectedErr := errors.New("failed to retrieve user")
+				userUUID := id.NewUUID()
+
+				mockUserRepo.EXPECT().GetUserByUUID(ctx, userUUID).Return(nil, expectedErr).Times(1)
+
+				actualUser, actualErr := userSvc.GetUserByUUID(ctx, userUUID)
+				Expect(actualUser).To(BeNil())
+				assert.Error(t, actualErr)
+			})
+
+			It("should return user response if there is success retrieving from repository", func() {
+				defer mockCtrl.Finish()
+				name := faker.FirstName()
+				email := faker.Email()
+				imageUrl := faker.URL()
+				skill := faker.Word()
+				jobTitle := faker.Word()
+				password := faker.Password()
+
+				existingUser, err := user.New(user.UserParams{
+					EntityParams: entity.EntityParams{
+						EntityIDParams: entity.EntityIDParams{
+							UUID:  id.NewUUID(),
+							KeyID: id.NewKeyID(),
+							XID:   id.NewXid(),
+						},
+						EntityTimestampParams: entity.EntityTimestampParams{
+							CreatedAt: time.Now(),
+							UpdatedAt: time.Now(),
+						},
+						Metadata: map[string]any{},
+					},
+					Name:     name,
+					Email:    email,
+					ImageUrl: imageUrl,
+					Skills:   []string{skill},
+					JobTitle: jobTitle,
+					Password: password,
+				})
+				assert.NoError(t, err)
+
+				userUUID := id.NewUUID()
+
+				mockUserRepo.EXPECT().GetUserByUUID(ctx, userUUID).Return(&existingUser, nil).Times(1)
+
+				actualUser, actualErr := userSvc.GetUserByUUID(ctx, userUUID)
+				assert.Nil(t, actualErr)
+				Expect(actualUser).NotTo(BeNil())
+
+			})
 		})
 	})
 })
