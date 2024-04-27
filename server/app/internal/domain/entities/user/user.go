@@ -82,6 +82,11 @@ func (u *User) Name() string {
 	return u.name
 }
 
+// Password retrieves the hashed user password
+func (u *User) Password() string {
+	return u.hashedPassword
+}
+
 // Email returns the user's email address
 func (u *User) Email() string {
 	return u.email.Get()

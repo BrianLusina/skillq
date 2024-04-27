@@ -51,19 +51,19 @@ func (mr *MockUserRepoPortMockRecorder) CreateUser(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserRepoPort)(nil).CreateUser), arg0, arg1)
 }
 
-// CreateUserVerification mocks base method.
-func (m *MockUserRepoPort) CreateUserVerification(arg0 context.Context, arg1 user.UserVerification) (*user.UserVerification, error) {
+// GetAllUsers mocks base method.
+func (m *MockUserRepoPort) GetAllUsers(arg0 context.Context) ([]user.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUserVerification", arg0, arg1)
-	ret0, _ := ret[0].(*user.UserVerification)
+	ret := m.ctrl.Call(m, "GetAllUsers", arg0)
+	ret0, _ := ret[0].([]user.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CreateUserVerification indicates an expected call of CreateUserVerification.
-func (mr *MockUserRepoPortMockRecorder) CreateUserVerification(arg0, arg1 interface{}) *gomock.Call {
+// GetAllUsers indicates an expected call of GetAllUsers.
+func (mr *MockUserRepoPortMockRecorder) GetAllUsers(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserVerification", reflect.TypeOf((*MockUserRepoPort)(nil).CreateUserVerification), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUsers", reflect.TypeOf((*MockUserRepoPort)(nil).GetAllUsers), arg0)
 }
 
 // GetUserByUUID mocks base method.

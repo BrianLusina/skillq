@@ -29,19 +29,26 @@ var _ = Describe("User Service", func() {
 	t := GinkgoT()
 
 	var (
-		mockCtrl          *gomock.Controller
-		mockUserRepo      *mockuserrepo.MockUserRepoPort
-		mockPublisher     *mockmessagepublisher.MockPublisher
-		mockStorageClient *mockstorageclient.MockStorageClient
-		userSvc           userService
+		mockCtrl                 *gomock.Controller
+		mockUserRepo             *mockuserrepo.MockUserRepoPort
+		mockUserVerificationRepo *mockuserrepo.MockUserVerificationRepoPort
+		mockPublisher            *mockmessagepublisher.MockPublisher
+		mockStorageClient        *mockstorageclient.MockStorageClient
+		userSvc                  userService
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(t)
 		mockUserRepo = mockuserrepo.NewMockUserRepoPort(mockCtrl)
+		mockUserVerificationRepo = mockuserrepo.NewMockUserVerificationRepoPort(mockCtrl)
 		mockPublisher = mockmessagepublisher.NewMockPublisher(mockCtrl)
 		mockStorageClient = mockstorageclient.NewMockStorageClient(mockCtrl)
-		userSvc = userService{userRepo: mockUserRepo, messagePublisher: mockPublisher, storageClient: mockStorageClient}
+		userSvc = userService{
+			userRepo:             mockUserRepo,
+			userVerificationRepo: mockUserVerificationRepo,
+			messagePublisher:     mockPublisher,
+			storageClient:        mockStorageClient,
+		}
 
 		assert.NotNil(t, userSvc)
 	})
@@ -94,7 +101,7 @@ var _ = Describe("User Service", func() {
 				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Times(0)
 
 				// no user verification was created
-				mockUserRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Times(0)
+				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Times(0)
 
 				// no message was published
 				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
@@ -150,7 +157,7 @@ var _ = Describe("User Service", func() {
 				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Return(nil, mockRepoError).Times(1)
 
 				// no user verification was created
-				mockUserRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Times(0)
+				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Times(0)
 
 				// no message was published
 				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
@@ -206,7 +213,7 @@ var _ = Describe("User Service", func() {
 				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
 
 				// no user verification was created
-				mockUserRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(nil, mockRepoError).Times(1)
+				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(nil, mockRepoError).Times(1)
 
 				// no message was published
 				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
@@ -271,7 +278,7 @@ var _ = Describe("User Service", func() {
 				})
 
 				// user verification was created
-				mockUserRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
+				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
 
 				// message failed to be published
 				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(mockError).Times(1)
@@ -340,7 +347,7 @@ var _ = Describe("User Service", func() {
 				})
 
 				// user verification was created
-				mockUserRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
+				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
 
 				// message failed to be published
 				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -408,7 +415,7 @@ var _ = Describe("User Service", func() {
 				})
 
 				// user verification was created
-				mockUserRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
+				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
 
 				// message failed to be published
 				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)

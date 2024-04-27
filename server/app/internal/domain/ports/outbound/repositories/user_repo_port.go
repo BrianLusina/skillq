@@ -12,9 +12,9 @@ type UserRepoPort interface {
 	// CreateUser creates a user in the repository
 	CreateUser(context.Context, user.User) (*user.User, error)
 
-	// CreateUserVerification creates a user verification in the repository
-	CreateUserVerification(context.Context, user.UserVerification) (*user.UserVerification, error)
-
 	// GetUserByUUID retrieves a user given their UUID
 	GetUserByUUID(context.Context, id.UUID) (*user.User, error)
+
+	// GetAllUsers retrieves all users
+	GetAllUsers(context.Context) ([]user.User, error)
 }

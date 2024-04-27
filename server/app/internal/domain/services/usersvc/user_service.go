@@ -19,19 +19,21 @@ import (
 
 // userService is the structure for the business logic handling user management
 type userService struct {
-	userRepo         repositories.UserRepoPort
-	messagePublisher messaging.Publisher
-	storageClient    storage.StorageClient
+	userRepo             repositories.UserRepoPort
+	userVerificationRepo repositories.UserVerificationRepoPort
+	messagePublisher     messaging.Publisher
+	storageClient        storage.StorageClient
 }
 
 var _ inbound.UserUseCase = (*userService)(nil)
 
 // New creates a new user service implementation of the user use case
-func New(userRepo repositories.UserRepoPort, messagePublisher messaging.Publisher, storageClient storage.StorageClient) inbound.UserUseCase {
+func New(userRepo repositories.UserRepoPort, userVerificationRepo repositories.UserVerificationRepoPort, messagePublisher messaging.Publisher, storageClient storage.StorageClient) inbound.UserUseCase {
 	return &userService{
-		userRepo:         userRepo,
-		messagePublisher: messagePublisher,
-		storageClient:    storageClient,
+		userRepo:             userRepo,
+		userVerificationRepo: userVerificationRepo,
+		messagePublisher:     messagePublisher,
+		storageClient:        storageClient,
 	}
 }
 
@@ -113,7 +115,7 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 	})
 
 	// create user verification
-	if _, err := svc.userRepo.CreateUserVerification(ctx, verification); err != nil {
+	if _, err := svc.userVerificationRepo.CreateUserVerification(ctx, verification); err != nil {
 		return user.UserVerification{}, fmt.Errorf("failed to create email verification: %w", err)
 	}
 
