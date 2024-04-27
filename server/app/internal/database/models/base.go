@@ -11,7 +11,8 @@ type BaseModel struct {
 	ObjectID  primitive.ObjectID `bson:"_id,omitempty"`
 	UUID      string             `bson:"uuid,omitempty"`
 	XID       string             `bson:"xid,omitempty"`
-	KeyID     string             `bson:"keyId,omitempty"`
+	KeyID     string             `bson:"key_id,omitempty"`
+	Metadata  map[string]any     `bson:"metadata,omitempty"`
 	CreatedAt time.Time          `bson:"created_at"`
 	UpdatedAt time.Time          `bson:"updated_at"`
 	DeletedAt *time.Time         `bson:"deleted_at,omitempty"`
