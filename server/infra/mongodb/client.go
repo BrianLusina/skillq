@@ -17,9 +17,8 @@ type MongoDBClient[T any] interface {
 	// FindById retrieves the model using the given key name and the id value populating the model with the retrieved data if found
 	FindById(ctx context.Context, keyName string, id string) (T, error)
 
-	// TODO: pass in a filter
-	// FindAll retrieves all the items
-	FindAll(ctx context.Context) ([]T, error)
+	// FindAll retrieves all the items with a given filter
+	FindAll(ctx context.Context, filter map[string]map[string]string) ([]T, error)
 
 	// Delete deletes a record given it's ID name and the id value
 	Delete(ctx context.Context, keyName string, id string) error

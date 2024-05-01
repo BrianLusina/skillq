@@ -3,6 +3,7 @@ package userrepo
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
@@ -11,7 +12,6 @@ import (
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/utils/tools"
 	"github.com/pkg/errors"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // userRepoAdapter is the user repository adapter structure for managing user data
@@ -60,7 +60,8 @@ func (repo *userRepoAdapter) GetUserByUUID(ctx context.Context, userUUID id.UUID
 }
 
 func (repo *userRepoAdapter) GetAllUsers(ctx context.Context) ([]user.User, error) {
-	users, err := repo.dbClient.FindAll(ctx)
+	// TODO: provide filter values for fetching users
+	users, err := repo.dbClient.FindAll(ctx, map[string]map[string]string{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve all users")
 	}
@@ -71,26 +72,31 @@ func (repo *userRepoAdapter) GetAllUsers(ctx context.Context) ([]user.User, erro
 }
 
 func (repo *userRepoAdapter) GetAllUsersBySkill(ctx context.Context, skill string) ([]user.User, error) {
-	filterValues := map[string]string{
-		"$regex":   fmt.Sprintf("(?i)%s", skill),
-		"$options": "i",
-	}
-
-	map[string]map[string]string{
-		"skill": filterValues,
-	}
-
-	filter := bson.M{
-		"skills": bson.M{
-			filterValues,
+	filterValues := map[string]map[string]string{
+		"skills": {
+			"$regex":   fmt.Sprintf("(?i)%s", skill),
+			"$options": "i",
 		},
 	}
-	users, err := repo.dbClient.FindAll(ctx)
+
+	users, err := repo.dbClient.FindAll(ctx, filterValues)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve all users")
+		return nil, errors.Wrapf(err, "failed to retrieve all users by skill %s", skill)
 	}
 
-	return tools.MapWithError(users, func(u models.UserModel, _ int) (user.User, error) {
+	usersWithSkill := tools.Filter(users, func(user models.UserModel) bool {
+		hasSkill := false
+		for _, userSkill := range user.Skills {
+			if strings.ToLower(userSkill) == skill {
+				hasSkill = true
+				break
+			}
+			hasSkill = false
+		}
+		return hasSkill
+	})
+
+	return tools.MapWithError(usersWithSkill, func(u models.UserModel, _ int) (user.User, error) {
 		return mapModelToUser(u)
 	})
 }

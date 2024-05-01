@@ -21,3 +21,16 @@ func MapWithError[T any, R any](collection []T, fn func(item T, idx int) (R, err
 
 	return result, nil
 }
+
+// Filter filters data based on a certain predicate
+func Filter[T any](data []T, predicate func(T) bool) []T {
+	filtered := make([]T, 0)
+
+	for _, d := range data {
+		if predicate(d) {
+			filtered = append(filtered, d)
+		}
+	}
+
+	return filtered
+}

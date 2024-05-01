@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,28 +24,28 @@ type mongoDBClient[T any] struct {
 
 // New creates a new mongo DB client
 func New[T any](config MongoDBConfig) (MongoDBClient[T], error) {
-	ctx := context.Background()
-	clientOptions := options.Client()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	auth := options.Credential{
-		Username: config.Client.User,
-		Password: config.Client.Password,
-	}
+	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s", config.Client.User, config.Client.Password, config.Client.Host, config.Client.Port)
+	clientOptions := options.Client().ApplyURI(uri)
+
 	clientOptions.Hosts = []string{config.Client.Host}
-	clientOptions.SetAuth(auth)
 	clientOptions.SetRetryWrites(config.Client.RetryWrites)
 
 	dbClient, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatalf(fmt.Sprintf("failed to connect to mongo db %v", err))
+		log.Fatalf(fmt.Sprintf("failed to connect to mongo db: %v", err))
 		return nil, errors.Wrapf(err, "failed to connect to mongo DB")
 	}
 
-	dbOptions := options.Database()
 	// TODO: set database options if provided
+	dbOptions := options.Database()
 
 	db := dbClient.Database(config.DBConfig.DatabaseName, dbOptions)
 	collection := db.Collection(config.DBConfig.CollectionName)
+
+	slog.Info("connected to mongo db")
 
 	return &mongoDBClient[T]{
 		mongoClient: dbClient,
@@ -56,6 +58,7 @@ func New[T any](config MongoDBConfig) (MongoDBClient[T], error) {
 func (client *mongoDBClient[T]) Insert(ctx context.Context, model T) (primitive.ObjectID, error) {
 	result, err := client.collection.InsertOne(ctx, model)
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to insert item: %v with err: %v", model, err)
 		return primitive.ObjectID{}, err
 	}
 
@@ -129,8 +132,16 @@ func (client *mongoDBClient[T]) FindById(ctx context.Context, keyName string, id
 }
 
 func (client *mongoDBClient[T]) FindAll(ctx context.Context, filter map[string]map[string]string) ([]T, error) {
-	filterValues := bson.M{
-		filter["key"]: bson.M{filter[values]},
+	filterValues := bson.M{}
+
+	for key, value := range filter {
+		nestedBsonMap := bson.M{}
+
+		for nestedKey, nestedValue := range value {
+			nestedBsonMap[nestedKey] = nestedValue
+		}
+
+		filterValues[key] = nestedBsonMap
 	}
 
 	cursor, err := client.collection.Find(ctx, filterValues)
