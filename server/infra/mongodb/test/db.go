@@ -26,9 +26,6 @@ type TestConfig struct {
 	Collection string
 }
 
-type TestDatabase struct {
-}
-
 // CreateMongoDbContainer creates a test mongo db container with the provided config
 func CreateMongoDBContainer(ctx context.Context, testConfig TestConfig) (testcontainers.Container, error) {
 	env := map[string]string{

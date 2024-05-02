@@ -14,10 +14,10 @@ import (
 	mockmessagepublisher "github.com/BrianLusina/skillq/server/infra/messaging/mocks"
 	mockstorageclient "github.com/BrianLusina/skillq/server/infra/storage/mocks"
 	"github.com/go-faker/faker/v4"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestUserService(t *testing.T) {
