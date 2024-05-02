@@ -133,7 +133,7 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 
 	// TODO: move to separate goroutine
 	// TODO: get the queue name from the message event
-	if err := svc.messagePublisher.Publish(ctx, "user_email_verification_queue", eventBytes); err != nil {
+	if err := svc.messagePublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
 		return user.UserVerification{}, errors.Wrapf(err, "failed to publish user email verified task")
 	}
 

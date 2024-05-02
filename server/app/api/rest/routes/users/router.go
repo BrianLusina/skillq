@@ -1,5 +1,1 @@
 package users
-
-func createUser() {
-
-}

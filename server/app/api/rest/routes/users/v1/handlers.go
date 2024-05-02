@@ -37,7 +37,25 @@ func (api *UserV1Api) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := api.userService.CreateUser(ctx, userRequest)
 	if err != nil {
-		// TODO: handle error
+		// TODO: handle different types of error
+		logger.Errorf("handler: failed to create user: %v", err)
+		utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
+		return
 	}
 
+	response := userResponseDto{
+		UUID:      user.UUID,
+		KeyID:     user.KeyID,
+		XID:       user.XID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		DeletedAt: user.DeletedAt,
+		Name:      user.Name,
+		Email:     user.Email,
+		JobTitle:  user.JobTitle,
+		Skills:    user.Skills,
+		ImageUrl:  user.ImageUrl,
+	}
+
+	utils.WriteWithStatus(w, http.StatusCreated, response)
 }

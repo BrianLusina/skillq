@@ -1,6 +1,6 @@
 package users
 
-import "github.com/BrianLusina/skillq/server/app/internal/ports/inbound"
+import "github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 
 // UserApi represents a structure for the APO
 type UserApi struct {
