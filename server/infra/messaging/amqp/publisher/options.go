@@ -1,4 +1,4 @@
-package amqp
+package publisher
 
 // AmqpPublisherOption allows adding options to the AMQP publisher
 type AmqpPublisherOption func(*AmqpPublisher)

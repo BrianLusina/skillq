@@ -1,18 +1,67 @@
 package amqp
 
-import "context"
+import (
+	"fmt"
+	"time"
 
-// Amqp defines an interface that Advanced Message Queuing Protocol clients implement
-type Amqp interface {
-	// Declare creates a given queue with a given message TTL(Time To Live) and also declares a DLX(Dead Letter Exchange) on the queue
-	Declare(ctx context.Context, queue string, msgTTL int, dlx bool) error
+	"github.com/BrianLusina/skillq/server/infra/logger"
+	rabbitmq "github.com/rabbitmq/amqp091-go"
+)
 
-	// Publish publishes a message to a given topic
-	Publish(ctx context.Context, queue string, body any) error
+// AmqpClient defines an interface that Advanced Message Queuing Protocol clients implement
+type AmqpClient struct {
+	AmqpConn *rabbitmq.Connection
+	AmqpChan *rabbitmq.Channel
+	logger   logger.Logger
+}
 
-	// Consumes a message from a given queue
-	Consume(ctx context.Context, queue string) error
+// NewAmqpClient creates an AMQP Client that contains a connection to an AMQP broker
+func NewAmqpClient(config Config, log logger.Logger) (*AmqpClient, error) {
+	connString := fmt.Sprintf("amqp://%v:%v@%v:%v/", config.Username, config.Password, config.Host, config.Port)
+	var (
+		amqpConn *rabbitmq.Connection
+		counts   int64
+	)
 
-	// AddHandler adds a handler that will handle consumption of messages from a queue
-	AddHandler(ctx context.Context, task string, handler func(payload []byte) error)
+	for {
+		conn, err := rabbitmq.Dial(connString)
+		if err != nil {
+			log.Errorf("RabbitMq at %s:%s not ready...\n", config.Host, config.Port)
+			counts++
+		} else {
+			amqpConn = conn
+			break
+		}
+
+		if counts > _retryTimes {
+			log.Fatalf(err)
+
+			return nil, ErrCannotConnectRabbitMQ
+		}
+
+		log.Info("Backing off for 2 seconds...")
+		time.Sleep(_backOffSeconds * time.Second)
+
+		continue
+	}
+
+	log.Info("Connected to RabbitMQ!")
+
+	amqpChan, err := amqpConn.Channel()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open a channel: %w", err)
+	}
+
+	return &AmqpClient{
+		AmqpConn: amqpConn,
+		AmqpChan: amqpChan,
+		logger:   log,
+	}, nil
+}
+
+// CloseChan closes connection to a broker
+func (p *AmqpClient) CloseChan() {
+	if err := p.AmqpChan.Close(); err != nil {
+		p.logger.Errorf("Publisher CloseChan: %v", err)
+	}
 }
