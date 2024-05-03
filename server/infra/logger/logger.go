@@ -33,4 +33,6 @@ type Logger interface {
 
 	// Fatalf uses fmt.Sprintf to construct and log a message, then calls os.Exit.
 	Fatalf(format string, args ...any)
+
+	Warn(args ...any)
 }

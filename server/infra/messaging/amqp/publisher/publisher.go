@@ -2,7 +2,6 @@ package publisher
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -21,8 +20,6 @@ type AmqpPublisher struct {
 	messageTypeName string
 	logger          logger.Logger
 }
-
-var ErrCannotConnectRabbitMQ = errors.New("cannot connect to rabbit")
 
 // NewPublisher creates a new AMQP Publisher
 func NewPublisher(client amqp.AmqpClient, log logger.Logger, opts ...AmqpPublisherOption) (messaging.Publisher, error) {

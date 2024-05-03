@@ -34,7 +34,7 @@ func NewAmqpClient(config Config, log logger.Logger) (*AmqpClient, error) {
 		}
 
 		if counts > _retryTimes {
-			log.Fatalf(err)
+			log.Fatalf("failed to retry: %v", err)
 
 			return nil, ErrCannotConnectRabbitMQ
 		}
