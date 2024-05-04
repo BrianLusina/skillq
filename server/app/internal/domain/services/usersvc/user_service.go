@@ -165,10 +165,10 @@ func (svc *userService) GetUserByUUID(ctx context.Context, userUUID id.UUID) (*i
 
 func (svc *userService) UploadUserImage(ctx context.Context, userUUID id.UUID, imageData inbound.UserImageRequest) (string, error) {
 	url, err := svc.storageClient.Upload(ctx, storage.StorageItem{
-		Type:    imageData.Type,
-		Content: imageData.Content,
-		Name:    fmt.Sprintf("%s-image", userUUID),
-		Bucket:  fmt.Sprintf("%s-documents", userUUID),
+		ContentType: imageData.Type,
+		Content:     imageData.Content,
+		Name:        fmt.Sprintf("%s-image", userUUID),
+		Bucket:      fmt.Sprintf("%s-documents", userUUID),
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to store user image")
