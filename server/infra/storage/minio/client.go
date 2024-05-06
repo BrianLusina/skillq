@@ -50,15 +50,9 @@ func NewClient(config Config, log logger.Logger) (storage.StorageClient, error) 
 
 func (sc *MinioStorageClient) Upload(ctx context.Context, item storage.StorageItem) (string, error) {
 	bucket := item.Bucket
-	err := sc.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{
-		ObjectLocking: false,
-		// TODO: set the region
-		// Region: sc.region,
-	})
-	if err != nil {
+	if err := sc.CreateBucket(ctx, bucket); err != nil {
 		// check to see if we already own this bucket, which happens if this is run twice
-		exists, errBucketExists := sc.client.BucketExists(ctx, bucket)
-		if errBucketExists == nil && exists {
+		if exists, errBucketExists := sc.BucketExists(ctx, bucket); errBucketExists == nil && exists {
 			sc.log.Warn(fmt.Sprintf("Bucket Already exists %s", bucket))
 		} else {
 			sc.log.Errorf("Failed to create bucket: %v", err)
@@ -89,4 +83,31 @@ func (sc *MinioStorageClient) Upload(ctx context.Context, item storage.StorageIt
 	sc.log.Infof("Successfully uploaded document %v with information: %v", item, info)
 
 	return info.Location, nil
+}
+
+func (sc *MinioStorageClient) CreateBucket(ctx context.Context, bucket string) error {
+	err := sc.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{
+		ObjectLocking: false,
+		// TODO: set the region
+		// Region: sc.region,
+	})
+	if err != nil {
+		sc.log.Errorf("Failed to create bucket %s", bucket)
+		return err
+	}
+
+	sc.log.Infof("Successfully created bucket %s", bucket)
+	return nil
+}
+
+func (sc *MinioStorageClient) BucketExists(ctx context.Context, bucketName string) (bool, error) {
+	exists, err := sc.client.BucketExists(ctx, bucketName)
+	if err == nil && exists {
+		sc.log.Infof("Bucket exists %s", bucketName)
+		return true, nil
+	} else if err != nil {
+		sc.log.Errorf("Failed to check existence of bucket:%s", bucketName)
+		return false, err
+	}
+	return exists, nil
 }
