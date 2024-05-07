@@ -1,29 +1,21 @@
 package v1
 
 import (
-	"encoding/json"
-	"net/http"
-
-	"github.com/BrianLusina/skillq/server/app/api/rest/utils"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
-
-	"github.com/BrianLusina/skillq/server/infra/logger"
+	"github.com/gofiber/fiber/v2"
 )
 
 // HandleCreateUser create a user
-func (api *UserV1Api) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (api *UserV1Api) HandleCreateUser(c *fiber.Ctx) error {
+	ctx := c.Context()
 
-	logger := logger.FromContext(ctx)
-
-	var payload userRequestDto
-	if err := json.NewDecoder(r.Body).Decode(payload); err != nil {
-		logger.Errorf("userapi/v1 handler: failed to decode request: %v", err)
-		utils.HandleDecodeErr(w, err)
-		return
+	payload := new(userRequestDto)
+	c.BodyParser(payload)
+	if err := c.BodyParser(payload); err != nil {
+		api.logger.Errorf("userapi/v1 handler: failed to decode request: %v", err)
+		// TODO: format error to DTO
+		return err
 	}
-
-	defer r.Body.Close()
 
 	userRequest := inbound.UserRequest{
 		Name:  payload.Name,
@@ -38,9 +30,9 @@ func (api *UserV1Api) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 	user, err := api.userService.CreateUser(ctx, userRequest)
 	if err != nil {
 		// TODO: handle different types of error
-		logger.Errorf("handler: failed to create user: %v", err)
-		utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
-		return
+		api.logger.Errorf("handler: failed to create user: %v", err)
+		// utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
+		return err
 	}
 
 	response := userResponseDto{
@@ -57,5 +49,12 @@ func (api *UserV1Api) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		ImageUrl:  user.ImageUrl,
 	}
 
-	utils.WriteWithStatus(w, http.StatusCreated, response)
+	return c.JSON(response)
+}
+
+// RegisterHandlers registers all the handlers for the user v1 endpoint
+func (api *UserV1Api) RegisterHandlers(r *fiber.App) {
+	userApiGroup := r.Group("/v1/users")
+
+	userApiGroup.Post("/", api.HandleCreateUser)
 }

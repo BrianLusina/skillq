@@ -40,6 +40,35 @@ func (m *MockStorageClient) EXPECT() *MockStorageClientMockRecorder {
 	return m.recorder
 }
 
+// BucketExists mocks base method.
+func (m *MockStorageClient) BucketExists(ctx context.Context, bucketName string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BucketExists", ctx, bucketName)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BucketExists indicates an expected call of BucketExists.
+func (mr *MockStorageClientMockRecorder) BucketExists(ctx, bucketName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketExists", reflect.TypeOf((*MockStorageClient)(nil).BucketExists), ctx, bucketName)
+}
+
+// CreateBucket mocks base method.
+func (m *MockStorageClient) CreateBucket(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBucket", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateBucket indicates an expected call of CreateBucket.
+func (mr *MockStorageClientMockRecorder) CreateBucket(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucket", reflect.TypeOf((*MockStorageClient)(nil).CreateBucket), arg0, arg1)
+}
+
 // Upload mocks base method.
 func (m *MockStorageClient) Upload(arg0 context.Context, arg1 storage.StorageItem) (string, error) {
 	m.ctrl.T.Helper()
