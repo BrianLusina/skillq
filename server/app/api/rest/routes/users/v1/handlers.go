@@ -1,4 +1,4 @@
-package v1
+package userv1
 
 import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
@@ -50,11 +50,4 @@ func (api *UserV1Api) HandleCreateUser(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(response)
-}
-
-// RegisterHandlers registers all the handlers for the user v1 endpoint
-func (api *UserV1Api) RegisterHandlers(r *fiber.App) {
-	userApiGroup := r.Group("/v1/users")
-
-	userApiGroup.Post("/", api.HandleCreateUser)
 }

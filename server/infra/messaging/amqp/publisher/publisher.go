@@ -67,3 +67,11 @@ func (p *AmqpPublisher) Publish(ctx context.Context, body []byte, contentType st
 func (p *AmqpPublisher) CloseChan() {
 	p.client.CloseChan()
 }
+
+func (p *AmqpPublisher) Configure(opts ...AmqpPublisherOption) messaging.Publisher {
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	return p
+}
