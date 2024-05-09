@@ -1,4 +1,4 @@
-package consumer
+package amqpconsumer
 
 const (
 	_exchangeKind       = "direct"

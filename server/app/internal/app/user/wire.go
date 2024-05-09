@@ -19,12 +19,14 @@ func InitializeUserApp(
 ) (*UserApp, func(), error) {
 	panic(wire.Build(
 		New,
-		di.UserAppLoggerSet,
+		di.LoggerSet,
 		di.ProvideUserMongoDbClient,
 		di.ProvideUserVerificationMongoDbClient,
+		di.UserVerificationRepositoryAdapterSet,
+		di.UserRepositoryAdapterSet,
 		di.AmqpClientSet,
-		di.EventPublisherSet,
-		di.UserStorageClientSet,
+		di.AmqpEventPublisherSet,
+		di.StorageMinioClientSet,
 		di.UserServiceSet,
 	))
 }

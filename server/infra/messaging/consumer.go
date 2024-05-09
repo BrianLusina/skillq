@@ -6,8 +6,8 @@ import "context"
 // of messages
 type Worker[T any] func(ctx context.Context, message T)
 
-// Consumer defines a consumer that handles consumption of messages from a Broker
-type Consumer interface {
+// EventConsumer defines a consumer that handles consumption of messages from a Broker
+type EventConsumer interface {
 	// Consumes a message from a given queue. This is mostly a blocking operation
 	Consume(ctx context.Context, queue string) error
 

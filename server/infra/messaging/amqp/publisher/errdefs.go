@@ -1,4 +1,4 @@
-package publisher
+package amqppublisher
 
 import "errors"
 

@@ -1,2 +1,2 @@
-// Package consumer defines publisher structures used to consumer messages from an AMQP broker
-package consumer
+// Package amqpconsumer defines consumer structures used to consume messages from an AMQP broker
+package amqpconsumer

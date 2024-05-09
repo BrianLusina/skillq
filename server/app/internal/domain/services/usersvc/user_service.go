@@ -11,7 +11,7 @@ import (
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
-	"github.com/BrianLusina/skillq/server/infra/messaging"
+	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/utils/security"
 	"github.com/pkg/errors"
@@ -19,21 +19,21 @@ import (
 
 // userService is the structure for the business logic handling user management
 type userService struct {
-	userRepo             repositories.UserRepoPort
-	userVerificationRepo repositories.UserVerificationRepoPort
-	messagePublisher     messaging.Publisher
-	storageClient        storage.StorageClient
+	userRepo              repositories.UserRepoPort
+	userVerificationRepo  repositories.UserVerificationRepoPort
+	eventMessagePublisher amqppublisher.AmqpEventPublisher
+	storageClient         storage.StorageClient
 }
 
 var _ inbound.UserUseCase = (*userService)(nil)
 
 // New creates a new user service implementation of the user use case
-func New(userRepo repositories.UserRepoPort, userVerificationRepo repositories.UserVerificationRepoPort, messagePublisher messaging.Publisher, storageClient storage.StorageClient) inbound.UserUseCase {
+func New(userRepo repositories.UserRepoPort, userVerificationRepo repositories.UserVerificationRepoPort, messagePublisher amqppublisher.AmqpEventPublisher, storageClient storage.StorageClient) inbound.UserUseCase {
 	return &userService{
-		userRepo:             userRepo,
-		userVerificationRepo: userVerificationRepo,
-		messagePublisher:     messagePublisher,
-		storageClient:        storageClient,
+		userRepo:              userRepo,
+		userVerificationRepo:  userVerificationRepo,
+		eventMessagePublisher: messagePublisher,
+		storageClient:         storageClient,
 	}
 }
 
@@ -132,7 +132,7 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 	}
 
 	// TODO: move to separate goroutine
-	if err := svc.messagePublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
+	if err := svc.eventMessagePublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
 		return user.UserVerification{}, errors.Wrapf(err, "failed to publish user email verified task")
 	}
 

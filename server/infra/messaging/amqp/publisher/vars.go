@@ -1,9 +1,6 @@
-package publisher
+package amqppublisher
 
 const (
-	_retryTimes     = 5
-	_backOffSeconds = 2
-
 	_publishMandatory = false
 	_publishImmediate = false
 	_exchangeName     = "skillq-exchange"

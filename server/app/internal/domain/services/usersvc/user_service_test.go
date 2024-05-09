@@ -11,7 +11,7 @@ import (
 	mockuserrepo "github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories/mocks"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
-	mockmessagepublisher "github.com/BrianLusina/skillq/server/infra/messaging/mocks"
+	mockamqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher/mocks"
 	mockstorageclient "github.com/BrianLusina/skillq/server/infra/storage/mocks"
 	"github.com/go-faker/faker/v4"
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +32,7 @@ var _ = Describe("User Service", func() {
 		mockCtrl                 *gomock.Controller
 		mockUserRepo             *mockuserrepo.MockUserRepoPort
 		mockUserVerificationRepo *mockuserrepo.MockUserVerificationRepoPort
-		mockPublisher            *mockmessagepublisher.MockPublisher
+		mockPublisher            *mockamqppublisher.MockAmqpEventPublisher
 		mockStorageClient        *mockstorageclient.MockStorageClient
 		userSvc                  userService
 	)
@@ -41,13 +41,13 @@ var _ = Describe("User Service", func() {
 		mockCtrl = gomock.NewController(t)
 		mockUserRepo = mockuserrepo.NewMockUserRepoPort(mockCtrl)
 		mockUserVerificationRepo = mockuserrepo.NewMockUserVerificationRepoPort(mockCtrl)
-		mockPublisher = mockmessagepublisher.NewMockPublisher(mockCtrl)
+		mockPublisher = mockamqppublisher.NewMockAmqpEventPublisher(mockCtrl)
 		mockStorageClient = mockstorageclient.NewMockStorageClient(mockCtrl)
 		userSvc = userService{
-			userRepo:             mockUserRepo,
-			userVerificationRepo: mockUserVerificationRepo,
-			messagePublisher:     mockPublisher,
-			storageClient:        mockStorageClient,
+			userRepo:              mockUserRepo,
+			userVerificationRepo:  mockUserVerificationRepo,
+			eventMessagePublisher: mockPublisher,
+			storageClient:         mockStorageClient,
 		}
 
 		assert.NotNil(t, userSvc)

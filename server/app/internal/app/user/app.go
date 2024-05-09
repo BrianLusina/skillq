@@ -3,9 +3,10 @@ package userapp
 import (
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/infra/logger"
-	"github.com/BrianLusina/skillq/server/infra/messaging"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
@@ -22,9 +23,12 @@ type UserApp struct {
 	UsersMongoDbClient            mongodb.MongoDBClient[models.UserModel]
 	UserVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel]
 
-	AmqpClient     amqp.AmqpClient
-	EventPublisher messaging.Publisher
-	StorageClient  storage.StorageClient
+	UserVerificationRepo repositories.UserVerificationRepoPort
+	UserRepo             repositories.UserRepoPort
+
+	AmqpClient         *amqp.AmqpClient
+	AmqpEventPublisher amqppublisher.AmqpEventPublisher
+	StorageClient      storage.StorageClient
 
 	UserSvc inbound.UserUseCase
 }
@@ -37,9 +41,11 @@ func New(
 	logger logger.Logger,
 	usersMongoDbClient mongodb.MongoDBClient[models.UserModel],
 	userVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel],
-	amqpClient amqp.AmqpClient,
-	eventPublisher messaging.Publisher,
+	amqpClient *amqp.AmqpClient,
+	amqpEventPublisher amqppublisher.AmqpEventPublisher,
 	storageClient storage.StorageClient,
+	userRepo repositories.UserRepoPort,
+	userVerificationRepo repositories.UserVerificationRepoPort,
 	userSvc inbound.UserUseCase,
 ) *UserApp {
 	return &UserApp{
@@ -50,8 +56,10 @@ func New(
 		UsersMongoDbClient:            usersMongoDbClient,
 		UserVerificationMongoDbClient: userVerificationMongoDbClient,
 		AmqpClient:                    amqpClient,
-		EventPublisher:                eventPublisher,
+		AmqpEventPublisher:            amqpEventPublisher,
 		StorageClient:                 storageClient,
+		UserVerificationRepo:          userVerificationRepo,
+		UserRepo:                      userRepo,
 		UserSvc:                       userSvc,
 	}
 }
