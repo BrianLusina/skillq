@@ -3,10 +3,9 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"log"
-	"log/slog"
 	"time"
 
+	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,10 +19,11 @@ type mongoDBClient[T any] struct {
 	mongoClient *mongo.Client
 	database    *mongo.Database
 	collection  *mongo.Collection
+	logger      logger.Logger
 }
 
 // New creates a new mongo DB client
-func New[T any](config MongoDBConfig) (MongoDBClient[T], error) {
+func New[T any](config MongoDBConfig, log logger.Logger) (MongoDBClient[T], error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -45,12 +45,13 @@ func New[T any](config MongoDBConfig) (MongoDBClient[T], error) {
 	db := dbClient.Database(config.DBConfig.DatabaseName, dbOptions)
 	collection := db.Collection(config.DBConfig.CollectionName)
 
-	slog.Info("connected to mongo db")
+	log.Info("connected to mongo db")
 
 	return &mongoDBClient[T]{
 		mongoClient: dbClient,
 		database:    db,
 		collection:  collection,
+		logger:      log,
 	}, nil
 }
 
@@ -58,7 +59,7 @@ func New[T any](config MongoDBConfig) (MongoDBClient[T], error) {
 func (client *mongoDBClient[T]) Insert(ctx context.Context, model T) (primitive.ObjectID, error) {
 	result, err := client.collection.InsertOne(ctx, model)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to insert item: %v with err: %v", model, err)
+		client.logger.Errorf("failed to insert item: %v with err: %v", model, err)
 		return primitive.ObjectID{}, err
 	}
 

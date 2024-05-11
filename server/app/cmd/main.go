@@ -2,35 +2,38 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
 	userv1 "github.com/BrianLusina/skillq/server/app/api/rest/routes/users/v1"
 	"github.com/BrianLusina/skillq/server/app/cmd/config"
 	userapp "github.com/BrianLusina/skillq/server/app/internal/app/user"
-	"github.com/BrianLusina/skillq/server/app/internal/database/repositories/userrepo"
-	"github.com/BrianLusina/skillq/server/app/internal/domain/services/usersvc"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go.uber.org/automaxprocs/maxprocs"
 )
 
 func main() {
+	appLogger := logger.New()
+
 	// set GOMAXPROCS
 	_, err := maxprocs.Set()
 	if err != nil {
-		slog.Error("failed set max procs", err)
+		appLogger.Error("failed set max procs", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cfg, err := config.NewConfig()
 	if err != nil {
-		slog.Error("failed get config", err)
+		appLogger.Error("failed get config", err)
 	}
 
 	slog.Info("⚡ init app", "name", cfg.Name, "version", cfg.Version)
@@ -46,44 +49,28 @@ func main() {
 	// middleware
 	app.Use(cors.New())
 
-	cleanup := prepareApp(ctx, cancel, cfg)
-
-	appLogger := logger.New()
-
-	//configuration
-
-	var MONGO_URL = "<your_connection_string>"
-
-	// routing
-
-	usersMongoDbClient, err := mongodb.New[any](mongodb.MongoDBConfig{})
-	if err != nil {
-		log.Fatalf("Failed to startup application: Err: %v", err)
-	}
-
-	userRepo := userrepo.New(usersMongoDbClient)
-
-	userVerificationMongoDbClient, err := mongodb.New[any](mongodb.MongoDBConfig{})
-	userVerificationRepo := userrepo.NewVerification(userVerificationMongoDbClient)
-
-	userService := usersvc.New(userRepo, userVerificationRepo)
-
-	userApi := userv1.NewUserApi(userService, appLogger)
-
-	userApi.RegisterHandlers(app)
+	cleanup := prepareApp(ctx, cancel, app, cfg)
 
 	// Start the server
-	err = app.Listen(":3000")
-	log.Fatalf("Failed to start application: %v", err)
+	err = app.Listen(fmt.Sprintf(":%d", cfg.HTTP.Port))
+	appLogger.Fatalf("Failed to start application: %v", err)
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case v := <-quit:
+		cleanup()
+		appLogger.Info("signal.Notify", v)
+	case done := <-ctx.Done():
+		cleanup()
+		appLogger.Info("ctx.Done", "app done", done)
+	}
 }
 
-func prepareApp(ctx context.Context, cancel context.CancelFunc, cfg *config.Config) func() {
-	userAppCleanup := prepareUserApp(ctx, cancel, cfg)
+func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cfg *config.Config) func() {
+	// configuration
 
-	return userAppCleanup
-}
-
-func prepareUserApp(ctx context.Context, cancel context.CancelFunc, cfg *config.Config) func() {
 	mongoDbConfig := mongodb.MongoDBConfig{
 		Client: mongodb.ClientOptions{
 			Host:        cfg.MongoDB.Host,
@@ -113,12 +100,27 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, cfg *config.
 		Token:           cfg.MinioConfig.Token,
 	}
 
-	a, cleanup, err := userapp.InitializeUserApp(mongoDbConfig, amqpConfig, minioConfig)
+	userApp, userAppCleanup := prepareUserApp(ctx, cancel, mongoDbConfig, amqpConfig, minioConfig)
+	appLogger := logger.New()
+
+	// routing
+	userApi := userv1.NewUserApi(userApp.UserSvc, appLogger)
+
+	userApi.RegisterHandlers(app)
+
+	return userAppCleanup
+}
+
+func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) (*userapp.UserApp, func()) {
+	userApp, cleanup, err := userapp.InitializeUserApp(mongoDbConfig, amqpConfig, minioConfig)
 	if err != nil {
 		slog.Error("failed init user app", err)
 		cancel()
 		<-ctx.Done()
 	}
+
+	// Configure publisher and start workers
+	// userApp.AmqpEventPublisher.Configure()
 
 	// a.BaristaOrderPub.Configure(
 	// 	pkgPublisher.ExchangeName("barista-order-exchange"),
@@ -148,5 +150,5 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, cfg *config.
 	// 	}
 	// }()
 
-	return cleanup
+	return userApp, cleanup
 }

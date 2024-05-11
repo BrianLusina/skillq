@@ -1,0 +1,34 @@
+app:
+  name: 'skillq-service'
+  version: '1.0.0'
+
+http:
+  host: '0.0.0.0'
+  port: 5000
+
+logger:
+  log_level: 'debug'
+  rollbar_env: 'counter-service'
+
+mongodb:
+  host: localhost
+  port: 27017
+  user: skillq-user
+  password: skillq-password
+  retryWrites: false
+  databaseName: skillq
+  collectionName: skillq
+
+rabbitmq:
+  username: guest
+  password: guest
+  host: localhost
+  port: 5672
+  url: amqp://guest:guest@127.0.0.1:5672/
+
+minio:
+  endpoint: localhost
+  accessKeyId: AKIAIOSFODNN7EXAMPLE
+  secretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  useSSL: false
+  token: ""

@@ -6,6 +6,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/BrianLusina/skillq/server/infra/logger"
 	infra "github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
@@ -67,7 +68,8 @@ func CreateMongoDBContainer(ctx context.Context, testConfig TestConfig) (testcon
 }
 
 func MongoDBClient[T any](t *testing.T, config infra.MongoDBConfig) infra.MongoDBClient[T] {
-	client, err := infra.New[T](config)
+	log := logger.New()
+	client, err := infra.New[T](config, log)
 	if err != nil {
 		t.Errorf("failed to create mongodb client: %v", err)
 		t.FailNow()

@@ -11,43 +11,38 @@ import (
 
 type (
 	Config struct {
-		configs.App   `yaml:"app"`
-		configs.HTTP  `yaml:"http"`
-		configs.Log   `yaml:"logger"`
-		MongoDB       `yaml:"mongodb"`
-		RabbitMQ      `yaml:"rabbitmq"`
-		MinioConfig   `yaml:"minio"`
-		ProductClient `yaml:"product_client"`
+		configs.App  `yaml:"app"`
+		configs.HTTP `yaml:"http"`
+		configs.Log  `yaml:"logger"`
+		MongoDB      `yaml:"mongodb"`
+		RabbitMQ     `yaml:"rabbitmq"`
+		MinioConfig  `yaml:"minio"`
 	}
 
 	MongoDB struct {
-		Host           string `env-required:"true" yaml:"host" env:"MONGODB_HOST"`
-		Port           string `env-required:"true" yaml:"port" env:"MONGODB_PORT"`
-		User           string `env-required:"true" yaml:"user" env:"MONGODB_USER"`
-		Password       string `env-required:"true" yaml:"password" env:"MONGODB_PASSWORD"`
-		RetryWrites    bool   `env-required:"false" yaml:"retryWrites" env:"MONGODB_RETRY_WRITES"`
-		DatabaseName   string `env-required:"true" yaml:"database" env:"MONGODB_USER_DATABASE"`
-		CollectionName string `env-required:"true" yaml:"collection" env:"MONGODB_USER_COLLECTION"`
+		Host           string `env-description:"Mongo Database Host" yaml:"host" env:"MONGODB_HOST"`
+		Port           string `env-description:"Mongo Database Port" yaml:"port" env:"MONGODB_PORT"`
+		User           string `env-description:"Mongo User" yaml:"user" env:"MONGODB_USER"`
+		Password       string `env-description:"Mongo Password" yaml:"password" env:"MONGODB_PASSWORD"`
+		RetryWrites    bool   `env-description:"Mo" yaml:"retryWrites" env:"MONGODB_RETRY_WRITES"`
+		DatabaseName   string `env-description:"" yaml:"database" env:"MONGODB_USER_DATABASE"`
+		CollectionName string `env-description:"" yaml:"collection" env:"MONGODB_USER_COLLECTION"`
 	}
 
 	RabbitMQ struct {
-		Username string `env-required:"true" yaml:"username" env:"RABBITMQ_USERNAME"`
-		Password string `env-required:"true" yaml:"password" env:"RABBITMQ_PASSWORD"`
-		Host     string `env-required:"true" yaml:"host" env:"RABBITMQ_HOST"`
-		Port     string `env-required:"true" yaml:"port" env:"RABBITMQ_PORT"`
-		URL      string `env-required:"true" yaml:"url" env:"RABBITMQ_URL"`
+		Username string `yaml:"username" env:"RABBITMQ_USERNAME"`
+		Password string `yaml:"password" env:"RABBITMQ_PASSWORD"`
+		Host     string `yaml:"host" env:"RABBITMQ_HOST"`
+		Port     string `yaml:"port" env:"RABBITMQ_PORT"`
+		URL      string `yaml:"url" env:"RABBITMQ_URL"`
 	}
 
 	MinioConfig struct {
-		Endpoint        string `env-required:"true" yaml:"endpoint" env:"MINIO_ENDPOINT"`
-		AccessKeyID     string `env-required:"true" yaml:"accessKeyId" env:"MINIO_ACCESS_KEY_ID"`
-		SecretAccessKey string `env-required:"true" yaml:"secretAccessKey" env:"MINIO_SECRET_ACCESS_KEY"`
-		UseSSL          bool   `env-required:"true" yaml:"useSSL" env:"MINIO_USE_SSL"`
-		Token           string `env-required:"true" yaml:"token" env:"MINIO_TOKEN"`
-	}
-
-	ProductClient struct {
-		URL string `env-required:"true" yaml:"url" env:"PRODUCT_CLIENT_URL"`
+		Endpoint        string `yaml:"endpoint" env:"MINIO_ENDPOINT"`
+		AccessKeyID     string `yaml:"accessKeyId" env:"MINIO_ACCESS_KEY_ID"`
+		SecretAccessKey string `yaml:"secretAccessKey" env:"MINIO_SECRET_ACCESS_KEY"`
+		UseSSL          bool   `yaml:"useSSL" env:"MINIO_USE_SSL"`
+		Token           string `yaml:"token" env:"MINIO_TOKEN"`
 	}
 )
 
