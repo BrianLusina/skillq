@@ -20,13 +20,17 @@ type (
 	}
 
 	MongoDB struct {
-		Host           string `env-description:"Mongo Database Host" yaml:"host" env:"MONGODB_HOST"`
-		Port           string `env-description:"Mongo Database Port" yaml:"port" env:"MONGODB_PORT"`
-		User           string `env-description:"Mongo User" yaml:"user" env:"MONGODB_USER"`
-		Password       string `env-description:"Mongo Password" yaml:"password" env:"MONGODB_PASSWORD"`
-		RetryWrites    bool   `env-description:"Mo" yaml:"retryWrites" env:"MONGODB_RETRY_WRITES"`
-		DatabaseName   string `env-description:"" yaml:"database" env:"MONGODB_USER_DATABASE"`
-		CollectionName string `env-description:"" yaml:"collection" env:"MONGODB_USER_COLLECTION"`
+		Host        string                       `env-description:"Mongo Database Host" yaml:"host" env:"MONGODB_HOST"`
+		Port        string                       `env-description:"Mongo Database Port" yaml:"port" env:"MONGODB_PORT"`
+		User        string                       `env-description:"Mongo User" yaml:"user" env:"MONGODB_USER"`
+		Password    string                       `env-description:"Mongo Password" yaml:"password" env:"MONGODB_PASSWORD"`
+		RetryWrites bool                         `env-description:"Mongo DB Retry writes" yaml:"retryWrites" env:"MONGODB_RETRY_WRITES"`
+		Database    string                       `env-description:"Mongo DB database" yaml:"database" env:"MONGODB_USER_DATABASE"`
+		Collections map[string]MongoDBCollection `env-description:"Mongo DB collection" yaml:"collections" env:"MONGODB_COLLECTIONS"`
+	}
+
+	MongoDBCollection struct {
+		Name string `env-description:"Mongo DB USer collection" yaml:"user.name" env:"MONGODB_USER_COLLECTION"`
 	}
 
 	RabbitMQ struct {

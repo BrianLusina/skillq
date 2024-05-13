@@ -4,20 +4,22 @@ app:
 
 http:
   host: '0.0.0.0'
-  port: 5000
+  port: 5001
 
 logger:
   log_level: 'debug'
-  rollbar_env: 'counter-service'
+  rollbar_env: 'skillq-service'
 
 mongodb:
   host: localhost
   port: 27017
-  user: skillq-user
-  password: skillq-password
+  user: skillqUser
+  password: skillqPassword
   retryWrites: false
-  databaseName: skillq
-  collectionName: skillq
+  database: skillqdb
+  collections:
+    users:
+      name: users
 
 rabbitmq:
   username: guest

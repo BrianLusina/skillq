@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // mongoDBClient is a structure for handling mongo db connections. This contains the underlying mongo client, database and collection
@@ -43,9 +44,13 @@ func New[T any](config MongoDBConfig, log logger.Logger) (MongoDBClient[T], erro
 	dbOptions := options.Database()
 
 	db := dbClient.Database(config.DBConfig.DatabaseName, dbOptions)
+	if err := dbClient.Ping(ctx, readpref.Primary()); err != nil {
+		log.Fatalf("DB Connection failed with err: %v", err)
+	}
+
 	collection := db.Collection(config.DBConfig.CollectionName)
 
-	log.Info("connected to mongo db")
+	log.Infof("connected to mongo db %s", config.DBConfig.DatabaseName)
 
 	return &mongoDBClient[T]{
 		mongoClient: dbClient,

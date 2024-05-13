@@ -39,7 +39,10 @@ func main() {
 	slog.Info("⚡ init app", "name", cfg.Name, "version", cfg.Version)
 
 	// TODO: setup config
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ServerHeader: "SkillQ",
+		AppName:      "SkillQ",
+	})
 
 	go func() {
 		defer app.Server().Shutdown()
@@ -70,7 +73,6 @@ func main() {
 
 func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cfg *config.Config) func() {
 	// configuration
-
 	mongoDbConfig := mongodb.MongoDBConfig{
 		Client: mongodb.ClientOptions{
 			Host:        cfg.MongoDB.Host,
@@ -80,10 +82,27 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 			RetryWrites: cfg.MongoDB.RetryWrites,
 		},
 		DBConfig: mongodb.DatabaseConfig{
-			DatabaseName:   cfg.MongoDB.DatabaseName,
-			CollectionName: cfg.MongoDB.CollectionName,
+			DatabaseName: cfg.MongoDB.Database,
 		},
 	}
+
+	userMongodbConfig := mongodb.MongoDBConfig{
+		Client: mongoDbConfig.Client,
+		DBConfig: mongodb.DatabaseConfig{
+			DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
+			CollectionName: "users",
+		},
+	}
+
+	// userVerificationMongodbConfig := mongodb.MongoDBConfig{
+	// 	Client: mongoDbConfig.Client,
+	// 	DBConfig: mongodb.DatabaseConfig{
+	// 		DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
+	// 		CollectionName: cfg.MongoDB.Collections["userVerification"].Name,
+	// 	},
+	// }
+
+	// collections := cfg.MongoDB.Collections
 
 	amqpConfig := amqp.Config{
 		Username: cfg.RabbitMQ.Username,
@@ -100,7 +119,7 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 		Token:           cfg.MinioConfig.Token,
 	}
 
-	userApp, userAppCleanup := prepareUserApp(ctx, cancel, mongoDbConfig, amqpConfig, minioConfig)
+	userApp, userAppCleanup := prepareUserApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig)
 	appLogger := logger.New()
 
 	// routing
