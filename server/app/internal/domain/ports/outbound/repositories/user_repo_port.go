@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/domain/id"
 )
 
@@ -16,5 +17,5 @@ type UserRepoPort interface {
 	GetUserByUUID(context.Context, id.UUID) (*user.User, error)
 
 	// GetAllUsers retrieves all users
-	GetAllUsers(context.Context) ([]user.User, error)
+	GetAllUsers(context.Context, common.RequestParams) ([]user.User, error)
 }

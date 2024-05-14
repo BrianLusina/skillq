@@ -7,6 +7,7 @@ import (
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/domain/entity"
@@ -14,6 +15,7 @@ import (
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/utils/security"
+	"github.com/BrianLusina/skillq/server/utils/tools"
 	"github.com/pkg/errors"
 )
 
@@ -170,4 +172,16 @@ func (svc *userService) UploadUserImage(ctx context.Context, userUUID id.UUID, i
 		return "", errors.Wrapf(err, "failed to store user image")
 	}
 	return url, nil
+}
+
+// GetAllUsers retrieves all users
+func (svc *userService) GetAllUsers(ctx context.Context, params common.RequestParams) ([]inbound.UserResponse, error) {
+	users, err := svc.userRepo.GetAllUsers(ctx, params)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve all users")
+	}
+
+	return tools.MapWithError(users, func(u user.User, _ int) (inbound.UserResponse, error) {
+		return *mapUserToUserResponse(u), nil
+	})
 }

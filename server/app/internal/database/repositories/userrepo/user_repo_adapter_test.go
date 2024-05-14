@@ -9,6 +9,7 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
 	mockuser "github.com/BrianLusina/skillq/server/app/internal/domain/entities/user/mocks"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	mockmongodb "github.com/BrianLusina/skillq/server/infra/mongodb/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -111,7 +112,7 @@ func TestUserRepoAdapter(t *testing.T) {
 			dbError := errors.New("failed to retrieve users")
 			mockDbClient.EXPECT().FindAll(ctx, map[string]map[string]string{}).Return(nil, dbError).Times(1)
 
-			actualUsers, err := userRepositoryAdapter.GetAllUsers(ctx)
+			actualUsers, err := userRepositoryAdapter.GetAllUsers(ctx, common.NewRequestParams())
 			assert.Error(t, err)
 			assert.Nil(t, actualUsers)
 		})
@@ -121,7 +122,7 @@ func TestUserRepoAdapter(t *testing.T) {
 
 			mockDbClient.EXPECT().FindAll(ctx, map[string]map[string]string{}).Return(testUserModels, nil).Times(1)
 
-			actualUsers, err := userRepositoryAdapter.GetAllUsers(ctx)
+			actualUsers, err := userRepositoryAdapter.GetAllUsers(ctx, common.NewRequestParams())
 			assert.NoError(t, err)
 			assert.NotNil(t, actualUsers)
 			assert.ElementsMatch(t, testUsers, actualUsers)

@@ -2,6 +2,8 @@ package userv1
 
 import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
+	"github.com/BrianLusina/skillq/server/utils/tools"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -53,6 +55,36 @@ func (api *UserV1Api) HandleGetUserById(c *fiber.Ctx) error {
 	}
 
 	response := mapUserToUserResponse(*user)
+
+	return c.JSON(response)
+}
+
+// HandleGetAllUsers gets all users
+func (api *UserV1Api) HandleGetUsers(c *fiber.Ctx) error {
+	ctx := c.Context()
+	order := c.Query("order", string(common.CREATED_AT))
+	sort := c.Query("sortby", string(common.DESC))
+	limit := c.QueryInt("limit", 100)
+	offset := c.QueryInt("offset", 0)
+
+	params := common.NewRequestParams(
+		common.WithRequestLimit(limit),
+		common.WithOffset(offset),
+		common.WithOrderBy(common.OrderBy(order)),
+		common.WithSortOrder(common.SortOrder(sort)),
+	)
+
+	users, err := api.userService.GetAllUsers(ctx, params)
+	if err != nil {
+		// TODO: handle different types of error
+		api.logger.Errorf("handler: failed to fetch users: %v", err)
+		// utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
+		return err
+	}
+
+	response := tools.Map(users, func(u inbound.UserResponse, _ int) userResponseDto {
+		return mapUserToUserResponse(u)
+	})
 
 	return c.JSON(response)
 }

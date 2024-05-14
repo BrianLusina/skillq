@@ -15,6 +15,7 @@ import (
 
 	user "github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
 	inbound "github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	common "github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	id "github.com/BrianLusina/skillq/server/domain/id"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -70,6 +71,21 @@ func (m *MockUserUseCase) CreateUser(arg0 context.Context, arg1 inbound.UserRequ
 func (mr *MockUserUseCaseMockRecorder) CreateUser(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserUseCase)(nil).CreateUser), arg0, arg1)
+}
+
+// GetAllUsers mocks base method.
+func (m *MockUserUseCase) GetAllUsers(arg0 context.Context, arg1 common.RequestParams) ([]inbound.UserResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllUsers", arg0, arg1)
+	ret0, _ := ret[0].([]inbound.UserResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllUsers indicates an expected call of GetAllUsers.
+func (mr *MockUserUseCaseMockRecorder) GetAllUsers(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUsers", reflect.TypeOf((*MockUserUseCase)(nil).GetAllUsers), arg0, arg1)
 }
 
 // GetUserByUUID mocks base method.

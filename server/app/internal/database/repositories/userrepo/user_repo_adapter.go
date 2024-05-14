@@ -7,6 +7,7 @@ import (
 
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/domain/id"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
@@ -59,7 +60,7 @@ func (repo *userRepoAdapter) GetUserByUUID(ctx context.Context, userUUID id.UUID
 	return &u, nil
 }
 
-func (repo *userRepoAdapter) GetAllUsers(ctx context.Context) ([]user.User, error) {
+func (repo *userRepoAdapter) GetAllUsers(ctx context.Context, params common.RequestParams) ([]user.User, error) {
 	// TODO: provide filter values for fetching users
 	users, err := repo.dbClient.FindAll(ctx, map[string]map[string]string{})
 	if err != nil {

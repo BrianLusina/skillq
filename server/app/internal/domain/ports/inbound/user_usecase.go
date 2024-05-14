@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/domain/id"
 )
 
@@ -52,6 +53,9 @@ type UserUseCase interface {
 
 	// GetUserByUUID retrieves a user given their UUID
 	GetUserByUUID(context.Context, string) (*UserResponse, error)
+
+	// GetAllUsers retrieves all users
+	GetAllUsers(context.Context, common.RequestParams) ([]UserResponse, error)
 
 	// UploadUserImage uploads a user image to blob storage & retrieves the image url
 	UploadUserImage(context.Context, id.UUID, UserImageRequest) (string, error)

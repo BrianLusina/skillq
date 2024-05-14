@@ -8,4 +8,5 @@ func (api *UserV1Api) RegisterHandlers(app *fiber.App) {
 
 	userApiGroup.Post("/", api.HandleCreateUser)
 	userApiGroup.Get("/:id", api.HandleGetUserById)
+	userApiGroup.Get("/", api.HandleGetUsers)
 }
