@@ -10,7 +10,6 @@ func (api *UserV1Api) HandleCreateUser(c *fiber.Ctx) error {
 	ctx := c.Context()
 
 	payload := new(userRequestDto)
-	c.BodyParser(payload)
 	if err := c.BodyParser(payload); err != nil {
 		api.logger.Errorf("userapi/v1 handler: failed to decode request: %v", err)
 		// TODO: format error to DTO
@@ -35,19 +34,25 @@ func (api *UserV1Api) HandleCreateUser(c *fiber.Ctx) error {
 		return err
 	}
 
-	response := userResponseDto{
-		UUID:      user.UUID,
-		KeyID:     user.KeyID,
-		XID:       user.XID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		DeletedAt: user.DeletedAt,
-		Name:      user.Name,
-		Email:     user.Email,
-		JobTitle:  user.JobTitle,
-		Skills:    user.Skills,
-		ImageUrl:  user.ImageUrl,
+	response := mapUserToUserResponse(*user)
+
+	return c.JSON(response)
+}
+
+// HandleGetUserById gets a user by an ID
+func (api *UserV1Api) HandleGetUserById(c *fiber.Ctx) error {
+	ctx := c.Context()
+	userId := c.Params("id")
+
+	user, err := api.userService.GetUserByUUID(ctx, userId)
+	if err != nil {
+		// TODO: handle different types of error
+		api.logger.Errorf("handler: failed to fetch user: %v", err)
+		// utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
+		return err
 	}
+
+	response := mapUserToUserResponse(*user)
 
 	return c.JSON(response)
 }

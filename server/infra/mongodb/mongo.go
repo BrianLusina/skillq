@@ -117,24 +117,16 @@ func (client *mongoDBClient[T]) FindById(ctx context.Context, keyName string, id
 		Value: id,
 	}}
 
-	var result bson.D
+	var result T
 	err := client.collection.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return *new(T), errors.Wrapf(err, "no document with ID %s exists", id)
+		}
 		return *new(T), err
 	}
 
-	document, err := bson.Marshal(&result)
-	if err != nil {
-		return *new(T), err
-	}
-
-	var model T
-	err = bson.Unmarshal(document, model)
-	if err != nil {
-		return *new(T), err
-	}
-
-	return model, nil
+	return result, nil
 }
 
 func (client *mongoDBClient[T]) FindAll(ctx context.Context, filter map[string]map[string]string) ([]T, error) {

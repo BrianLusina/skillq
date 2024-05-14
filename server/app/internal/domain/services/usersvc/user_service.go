@@ -28,7 +28,12 @@ type userService struct {
 var _ inbound.UserUseCase = (*userService)(nil)
 
 // New creates a new user service implementation of the user use case
-func New(userRepo repositories.UserRepoPort, userVerificationRepo repositories.UserVerificationRepoPort, messagePublisher amqppublisher.AmqpEventPublisher, storageClient storage.StorageClient) inbound.UserUseCase {
+func New(
+	userRepo repositories.UserRepoPort,
+	userVerificationRepo repositories.UserVerificationRepoPort,
+	messagePublisher amqppublisher.AmqpEventPublisher,
+	storageClient storage.StorageClient,
+) inbound.UserUseCase {
 	return &userService{
 		userRepo:              userRepo,
 		userVerificationRepo:  userVerificationRepo,
@@ -140,26 +145,18 @@ func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id
 }
 
 // GetUserByUUID retrieves a user given their UUID
-func (svc *userService) GetUserByUUID(ctx context.Context, userUUID id.UUID) (*inbound.UserResponse, error) {
-	existingUser, err := svc.userRepo.GetUserByUUID(ctx, userUUID)
+func (svc *userService) GetUserByUUID(ctx context.Context, userUUID string) (*inbound.UserResponse, error) {
+	uuid, err := id.StringToUUID(userUUID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse user UUID %s", userUUID)
+	}
+
+	existingUser, err := svc.userRepo.GetUserByUUID(ctx, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve user %w", err)
 	}
 
-	return &inbound.UserResponse{
-		UUID:      existingUser.UUID().String(),
-		KeyID:     existingUser.KeyID().String(),
-		XID:       existingUser.XID().String(),
-		CreatedAt: existingUser.CreatedAt(),
-		UpdatedAt: existingUser.UpdatedAt(),
-		DeletedAt: existingUser.DeletedAt(),
-		Metadata:  existingUser.Metadata(),
-		Name:      existingUser.Name(),
-		Email:     existingUser.Email(),
-		Skills:    existingUser.Skills(),
-		JobTitle:  existingUser.JobTitle(),
-		ImageUrl:  existingUser.ImageUrl(),
-	}, nil
+	return mapUserToUserResponse(*existingUser), nil
 }
 
 func (svc *userService) UploadUserImage(ctx context.Context, userUUID id.UUID, imageData inbound.UserImageRequest) (string, error) {

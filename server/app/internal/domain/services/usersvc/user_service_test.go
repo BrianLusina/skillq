@@ -441,7 +441,7 @@ var _ = Describe("User Service", func() {
 
 				mockUserRepo.EXPECT().GetUserByUUID(ctx, userUUID).Return(nil, expectedErr).Times(1)
 
-				actualUser, actualErr := userSvc.GetUserByUUID(ctx, userUUID)
+				actualUser, actualErr := userSvc.GetUserByUUID(ctx, userUUID.String())
 				Expect(actualUser).To(BeNil())
 				assert.Error(t, actualErr)
 			})
@@ -481,7 +481,7 @@ var _ = Describe("User Service", func() {
 
 				mockUserRepo.EXPECT().GetUserByUUID(ctx, userUUID).Return(&existingUser, nil).Times(1)
 
-				actualUser, actualErr := userSvc.GetUserByUUID(ctx, userUUID)
+				actualUser, actualErr := userSvc.GetUserByUUID(ctx, userUUID.String())
 				assert.Nil(t, actualErr)
 				Expect(actualUser).NotTo(BeNil())
 

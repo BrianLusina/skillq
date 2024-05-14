@@ -51,7 +51,7 @@ type UserUseCase interface {
 	CreateEmailVerification(context.Context, id.UUID) (user.UserVerification, error)
 
 	// GetUserByUUID retrieves a user given their UUID
-	GetUserByUUID(context.Context, id.UUID) (*UserResponse, error)
+	GetUserByUUID(context.Context, string) (*UserResponse, error)
 
 	// UploadUserImage uploads a user image to blob storage & retrieves the image url
 	UploadUserImage(context.Context, id.UUID, UserImageRequest) (string, error)
