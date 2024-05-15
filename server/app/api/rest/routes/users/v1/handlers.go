@@ -60,7 +60,7 @@ func (api *UserV1Api) HandleGetUserById(c *fiber.Ctx) error {
 }
 
 // HandleGetAllUsers gets all users
-func (api *UserV1Api) HandleGetUsers(c *fiber.Ctx) error {
+func (api *UserV1Api) HandleGetAllUsers(c *fiber.Ctx) error {
 	ctx := c.Context()
 	order := c.Query("order", string(common.CREATED_AT))
 	sort := c.Query("sortby", string(common.DESC))
@@ -78,6 +78,38 @@ func (api *UserV1Api) HandleGetUsers(c *fiber.Ctx) error {
 	if err != nil {
 		// TODO: handle different types of error
 		api.logger.Errorf("handler: failed to fetch users: %v", err)
+		// utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
+		return err
+	}
+
+	response := tools.Map(users, func(u inbound.UserResponse, _ int) userResponseDto {
+		return mapUserToUserResponse(u)
+	})
+
+	return c.JSON(response)
+}
+
+// HandleGetAllUsersBySkill gets all users with a given skill
+func (api *UserV1Api) HandleGetAllUsersBySkill(c *fiber.Ctx) error {
+	ctx := c.Context()
+
+	skill := c.Params("skill")
+	order := c.Query("order", string(common.CREATED_AT))
+	sort := c.Query("sortby", string(common.DESC))
+	limit := c.QueryInt("limit", 100)
+	offset := c.QueryInt("offset", 0)
+
+	params := common.NewRequestParams(
+		common.WithRequestLimit(limit),
+		common.WithOffset(offset),
+		common.WithOrderBy(common.OrderBy(order)),
+		common.WithSortOrder(common.SortOrder(sort)),
+	)
+
+	users, err := api.userService.GetAllUsersBySkill(ctx, skill, params)
+	if err != nil {
+		// TODO: handle different types of error
+		api.logger.Errorf("handler: failed to fetch users by skill %s, err: %v", skill, err)
 		// utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
 		return err
 	}

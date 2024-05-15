@@ -143,7 +143,7 @@ func TestUserRepoAdapter(t *testing.T) {
 				dbError := errors.New("failed to retrieve users")
 				mockDbClient.EXPECT().FindAll(ctx, filterValues).Return(nil, dbError).Times(1)
 
-				actualUsers, err := userRepositoryAdapter.GetAllUsersBySkill(ctx, skill)
+				actualUsers, err := userRepositoryAdapter.GetAllUsersBySkill(ctx, skill, common.NewRequestParams())
 				assert.Error(t, err)
 				assert.Nil(t, actualUsers)
 			})
@@ -161,7 +161,7 @@ func TestUserRepoAdapter(t *testing.T) {
 
 				mockDbClient.EXPECT().FindAll(ctx, filterValues).Return(testUserModels, nil).Times(1)
 
-				actualUsers, err := userRepositoryAdapter.GetAllUsersBySkill(ctx, skill)
+				actualUsers, err := userRepositoryAdapter.GetAllUsersBySkill(ctx, skill, common.NewRequestParams())
 				assert.NoError(t, err)
 				assert.NotNil(t, actualUsers)
 			})

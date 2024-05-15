@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	mongodb "github.com/BrianLusina/skillq/server/infra/mongodb"
 	primitive "go.mongodb.org/mongo-driver/bson/primitive"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -84,18 +85,18 @@ func (mr *MockMongoDBClientMockRecorder[T]) Disconnect(arg0 any) *gomock.Call {
 }
 
 // FindAll mocks base method.
-func (m *MockMongoDBClient[T]) FindAll(ctx context.Context, filter map[string]map[string]string) ([]T, error) {
+func (m *MockMongoDBClient[T]) FindAll(ctx context.Context, filterOptions mongodb.FilterOptions) ([]T, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindAll", ctx, filter)
+	ret := m.ctrl.Call(m, "FindAll", ctx, filterOptions)
 	ret0, _ := ret[0].([]T)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindAll indicates an expected call of FindAll.
-func (mr *MockMongoDBClientMockRecorder[T]) FindAll(ctx, filter any) *gomock.Call {
+func (mr *MockMongoDBClientMockRecorder[T]) FindAll(ctx, filterOptions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAll", reflect.TypeOf((*MockMongoDBClient[T])(nil).FindAll), ctx, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAll", reflect.TypeOf((*MockMongoDBClient[T])(nil).FindAll), ctx, filterOptions)
 }
 
 // FindById mocks base method.

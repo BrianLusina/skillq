@@ -61,8 +61,12 @@ func (repo *userRepoAdapter) GetUserByUUID(ctx context.Context, userUUID id.UUID
 }
 
 func (repo *userRepoAdapter) GetAllUsers(ctx context.Context, params common.RequestParams) ([]user.User, error) {
-	// TODO: provide filter values for fetching users
-	users, err := repo.dbClient.FindAll(ctx, map[string]map[string]string{})
+	users, err := repo.dbClient.FindAll(ctx, mongodb.FilterOptions{
+		Limit:     params.Limit,
+		Offset:    params.Offset,
+		SortOrder: mongodb.SortOrder(params.OrderOption.SortOrder),
+		OrderBy:   string(params.OrderOption.OrderBy),
+	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve all users")
 	}
@@ -72,7 +76,7 @@ func (repo *userRepoAdapter) GetAllUsers(ctx context.Context, params common.Requ
 	})
 }
 
-func (repo *userRepoAdapter) GetAllUsersBySkill(ctx context.Context, skill string) ([]user.User, error) {
+func (repo *userRepoAdapter) GetAllUsersBySkill(ctx context.Context, skill string, params common.RequestParams) ([]user.User, error) {
 	filterValues := map[string]map[string]string{
 		"skills": {
 			"$regex":   fmt.Sprintf("(?i)%s", skill),
@@ -80,7 +84,13 @@ func (repo *userRepoAdapter) GetAllUsersBySkill(ctx context.Context, skill strin
 		},
 	}
 
-	users, err := repo.dbClient.FindAll(ctx, filterValues)
+	users, err := repo.dbClient.FindAll(ctx, mongodb.FilterOptions{
+		Limit:       params.Limit,
+		Offset:      params.Offset,
+		SortOrder:   mongodb.SortOrder(params.OrderOption.SortOrder),
+		OrderBy:     string(params.OrderOption.OrderBy),
+		FieldFilter: filterValues,
+	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve all users by skill %s", skill)
 	}

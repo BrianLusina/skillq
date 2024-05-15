@@ -185,3 +185,15 @@ func (svc *userService) GetAllUsers(ctx context.Context, params common.RequestPa
 		return *mapUserToUserResponse(u), nil
 	})
 }
+
+// GetAllUsersBySkill retrieves all users with a given skill
+func (svc *userService) GetAllUsersBySkill(ctx context.Context, skill string, params common.RequestParams) ([]inbound.UserResponse, error) {
+	users, err := svc.userRepo.GetAllUsersBySkill(ctx, skill, params)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve all users with skill %s", skill)
+	}
+
+	return tools.MapWithError(users, func(u user.User, _ int) (inbound.UserResponse, error) {
+		return *mapUserToUserResponse(u), nil
+	})
+}

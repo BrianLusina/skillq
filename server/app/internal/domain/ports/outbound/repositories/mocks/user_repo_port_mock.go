@@ -72,6 +72,21 @@ func (mr *MockUserRepoPortMockRecorder) GetAllUsers(arg0, arg1 any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUsers", reflect.TypeOf((*MockUserRepoPort)(nil).GetAllUsers), arg0, arg1)
 }
 
+// GetAllUsersBySkill mocks base method.
+func (m *MockUserRepoPort) GetAllUsersBySkill(ctx context.Context, skill string, params common.RequestParams) ([]user.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllUsersBySkill", ctx, skill, params)
+	ret0, _ := ret[0].([]user.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllUsersBySkill indicates an expected call of GetAllUsersBySkill.
+func (mr *MockUserRepoPortMockRecorder) GetAllUsersBySkill(ctx, skill, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUsersBySkill", reflect.TypeOf((*MockUserRepoPort)(nil).GetAllUsersBySkill), ctx, skill, params)
+}
+
 // GetUserByUUID mocks base method.
 func (m *MockUserRepoPort) GetUserByUUID(arg0 context.Context, arg1 id.UUID) (*user.User, error) {
 	m.ctrl.T.Helper()

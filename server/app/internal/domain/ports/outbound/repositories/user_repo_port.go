@@ -18,4 +18,7 @@ type UserRepoPort interface {
 
 	// GetAllUsers retrieves all users
 	GetAllUsers(context.Context, common.RequestParams) ([]user.User, error)
+
+	// GetAllUsersBySkill retrieves all the users of a given skill
+	GetAllUsersBySkill(ctx context.Context, skill string, params common.RequestParams) ([]user.User, error)
 }

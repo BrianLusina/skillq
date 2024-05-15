@@ -57,6 +57,9 @@ type UserUseCase interface {
 	// GetAllUsers retrieves all users
 	GetAllUsers(context.Context, common.RequestParams) ([]UserResponse, error)
 
+	// GetAllUsersBySkill retrieves all users with a given skill
+	GetAllUsersBySkill(context.Context, string, common.RequestParams) ([]UserResponse, error)
+
 	// UploadUserImage uploads a user image to blob storage & retrieves the image url
 	UploadUserImage(context.Context, id.UUID, UserImageRequest) (string, error)
 }

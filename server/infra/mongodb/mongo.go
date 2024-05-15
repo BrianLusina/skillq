@@ -129,20 +129,26 @@ func (client *mongoDBClient[T]) FindById(ctx context.Context, keyName string, id
 	return result, nil
 }
 
-func (client *mongoDBClient[T]) FindAll(ctx context.Context, filter map[string]map[string]string) ([]T, error) {
+func (client *mongoDBClient[T]) FindAll(ctx context.Context, filterOptions FilterOptions) ([]T, error) {
 	filterValues := bson.M{}
-
-	for key, value := range filter {
-		nestedBsonMap := bson.M{}
+	for key, value := range filterOptions.FieldFilter {
+		nestedBsonMap := bson.D{}
 
 		for nestedKey, nestedValue := range value {
-			nestedBsonMap[nestedKey] = nestedValue
+			nestedElement := bson.E{Key: nestedKey, Value: nestedValue}
+			nestedBsonMap = append(nestedBsonMap, nestedElement)
 		}
 
 		filterValues[key] = nestedBsonMap
 	}
 
-	cursor, err := client.collection.Find(ctx, filterValues)
+	sortValues := bson.D{{Key: filterOptions.OrderBy, Value: mapSortOrder(filterOptions.SortOrder)}}
+
+	opts := options.Find().
+		SetLimit(int64(filterOptions.Limit)).
+		SetSkip(int64(filterOptions.Offset)).
+		SetSort(sortValues)
+	cursor, err := client.collection.Find(ctx, filterValues, opts)
 	if err != nil {
 		return nil, err
 	}
