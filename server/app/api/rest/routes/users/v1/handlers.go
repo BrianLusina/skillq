@@ -1,6 +1,8 @@
 package userv1
 
 import (
+	"fmt"
+
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/utils/tools"
@@ -119,4 +121,23 @@ func (api *UserV1Api) HandleGetAllUsersBySkill(c *fiber.Ctx) error {
 	})
 
 	return c.JSON(response)
+}
+
+// HandleGetAllUsersBySkill gets all users with a given skill
+func (api *UserV1Api) HandleDeleteUser(c *fiber.Ctx) error {
+	ctx := c.Context()
+
+	userId := c.Params("id")
+
+	err := api.userService.DeleteUser(ctx, userId)
+	if err != nil {
+		// TODO: handle different types of error
+		api.logger.Errorf("handler: failed to delete user with ID %s, err: %v", userId, err)
+		// utils.WriteWithError(w, http.StatusInternalServerError, "failed to create user")
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"Message": fmt.Sprintf("Successfully deleted user %s", userId),
+	})
 }

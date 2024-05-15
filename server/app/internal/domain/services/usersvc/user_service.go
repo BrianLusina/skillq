@@ -197,3 +197,18 @@ func (svc *userService) GetAllUsersBySkill(ctx context.Context, skill string, pa
 		return *mapUserToUserResponse(u), nil
 	})
 }
+
+// DeleteUser deletes a given user
+func (svc *userService) DeleteUser(ctx context.Context, userId string) error {
+	uuid, err := id.StringToUUID(userId)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse user ID %s", userId)
+	}
+
+	err = svc.userRepo.DeleteUserById(ctx, uuid)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete user with ID: %s", userId)
+	}
+
+	return nil
+}

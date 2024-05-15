@@ -111,3 +111,12 @@ func (repo *userRepoAdapter) GetAllUsersBySkill(ctx context.Context, skill strin
 		return mapModelToUser(u)
 	})
 }
+
+// DeleteUserById deletes a given user by the ID
+func (repo *userRepoAdapter) DeleteUserById(ctx context.Context, userID id.UUID) error {
+	err := repo.dbClient.Delete(ctx, "uuid", userID.String())
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete user with ID: %s", userID)
+	}
+	return nil
+}

@@ -73,6 +73,20 @@ func (mr *MockUserUseCaseMockRecorder) CreateUser(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserUseCase)(nil).CreateUser), arg0, arg1)
 }
 
+// DeleteUser mocks base method.
+func (m *MockUserUseCase) DeleteUser(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUser", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUser indicates an expected call of DeleteUser.
+func (mr *MockUserUseCaseMockRecorder) DeleteUser(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserUseCase)(nil).DeleteUser), arg0, arg1)
+}
+
 // GetAllUsers mocks base method.
 func (m *MockUserUseCase) GetAllUsers(arg0 context.Context, arg1 common.RequestParams) ([]inbound.UserResponse, error) {
 	m.ctrl.T.Helper()
@@ -86,6 +100,21 @@ func (m *MockUserUseCase) GetAllUsers(arg0 context.Context, arg1 common.RequestP
 func (mr *MockUserUseCaseMockRecorder) GetAllUsers(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUsers", reflect.TypeOf((*MockUserUseCase)(nil).GetAllUsers), arg0, arg1)
+}
+
+// GetAllUsersBySkill mocks base method.
+func (m *MockUserUseCase) GetAllUsersBySkill(arg0 context.Context, arg1 string, arg2 common.RequestParams) ([]inbound.UserResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllUsersBySkill", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]inbound.UserResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllUsersBySkill indicates an expected call of GetAllUsersBySkill.
+func (mr *MockUserUseCaseMockRecorder) GetAllUsersBySkill(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUsersBySkill", reflect.TypeOf((*MockUserUseCase)(nil).GetAllUsersBySkill), arg0, arg1, arg2)
 }
 
 // GetUserByUUID mocks base method.

@@ -62,4 +62,7 @@ type UserUseCase interface {
 
 	// UploadUserImage uploads a user image to blob storage & retrieves the image url
 	UploadUserImage(context.Context, id.UUID, UserImageRequest) (string, error)
+
+	// DeleteUser deletes a user given their ID
+	DeleteUser(context.Context, string) error
 }

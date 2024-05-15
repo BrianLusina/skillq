@@ -10,4 +10,5 @@ func (api *UserV1Api) RegisterHandlers(app *fiber.App) {
 	userApiGroup.Get("/:id", api.HandleGetUserById)
 	userApiGroup.Get("/", api.HandleGetAllUsers)
 	userApiGroup.Get("/skill/:skill", api.HandleGetAllUsersBySkill)
+	userApiGroup.Delete("/:id", api.HandleDeleteUser)
 }
