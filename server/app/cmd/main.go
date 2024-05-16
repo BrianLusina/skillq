@@ -13,6 +13,7 @@ import (
 	userapp "github.com/BrianLusina/skillq/server/app/internal/app/user"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
 	"github.com/gofiber/fiber/v2"
@@ -139,19 +140,11 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 	}
 
 	// Configure publisher and start workers
-	// userApp.AmqpEventPublisher.Configure()
-
-	// a.BaristaOrderPub.Configure(
-	// 	pkgPublisher.ExchangeName("barista-order-exchange"),
-	// 	pkgPublisher.BindingKey("barista-order-routing-key"),
-	// 	pkgPublisher.MessageTypeName("barista-order-created"),
-	// )
-
-	// a.KitchenOrderPub.Configure(
-	// 	pkgPublisher.ExchangeName("kitchen-order-exchange"),
-	// 	pkgPublisher.BindingKey("kitchen-order-routing-key"),
-	// 	pkgPublisher.MessageTypeName("kitchen-order-created"),
-	// )
+	userApp.AmqpEventPublisher.Configure(
+		amqppublisher.ExchangeName("skillq-user-exchange"),
+		amqppublisher.BindingKey("skillq-user-routing-key"),
+		amqppublisher.MessageTypeName("skillq-user"),
+	)
 
 	// a.Consumer.Configure(
 	// 	pkgConsumer.ExchangeName("counter-order-exchange"),

@@ -43,6 +43,8 @@ type (
 
 	MinioConfig struct {
 		Endpoint        string `yaml:"endpoint" env:"MINIO_ENDPOINT"`
+		Host            string `yaml:"host" env:"MINIO_HOST"`
+		Port            int    `yaml:"port" env:"MINIO_PORT"`
 		AccessKeyID     string `yaml:"accessKeyId" env:"MINIO_ACCESS_KEY_ID"`
 		SecretAccessKey string `yaml:"secretAccessKey" env:"MINIO_SECRET_ACCESS_KEY"`
 		UseSSL          bool   `yaml:"useSSL" env:"MINIO_USE_SSL"`
