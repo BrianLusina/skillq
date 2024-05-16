@@ -26,15 +26,13 @@ services:
   minio:
     image: minio/minio:RELEASE.2024-05-01T01-11-10Z
     container_name: skillq-minio
-    command: ["minio", "server", "/data"]
+    command: ["minio", "server", "/data", "--console-address", ":9001"]
     volumes:
       - minio:/data
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
-      - MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
       - MINIO_ROOT_USER=AKIAIOSFODNN7EXAMPLE
       - MINIO_ROOT_PASSWORD=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
       - MINIO_COMPRESS=on
