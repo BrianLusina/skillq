@@ -7,6 +7,6 @@ type EventPublisher interface {
 	// Publish publishes a message to a given topic
 	Publish(ctx context.Context, body []byte, contentType string) error
 
-	// CloseChan closes connection to a broker
-	CloseChan()
+	// Close closes connection to a broker
+	Close()
 }

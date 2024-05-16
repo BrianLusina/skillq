@@ -2,12 +2,12 @@ package amqppublisher
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	rabbitmq "github.com/rabbitmq/amqp091-go"
 )
 
@@ -35,9 +35,16 @@ func NewPublisher(client *amqp.AmqpClient, log logger.Logger) (AmqpEventPublishe
 
 // Publish publishes a message to a given topic
 func (p *amqpPublisherClient) Publish(ctx context.Context, body []byte, contentType string) error {
-	p.logger.Infof("Publishing message Exchange: %s, RoutingKey: %s", p.exchangeName, p.bindingKey)
+	amqpChan, err := p.client.AmqpConn.Channel()
+	if err != nil {
+		p.logger.Errorf("Failed to open channel: %v", err)
+		return errors.Wrapf(err, "failed to open a channel: %w", err)
+	}
+	defer amqpChan.Close()
 
-	if err := p.client.AmqpChan.PublishWithContext(
+	p.logger.Infof("Publishing message to exchange: %s, with routingKey: %s", p.exchangeName, p.bindingKey)
+
+	err = amqpChan.PublishWithContext(
 		ctx,
 		p.exchangeName,
 		p.bindingKey,
@@ -49,18 +56,22 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, body []byte, contentT
 			MessageId:    uuid.New().String(),
 			Timestamp:    time.Now(),
 			Body:         body,
-			Type:         p.messageTypeName, //"barista.ordered",
+			Type:         p.messageTypeName,
 		},
-	); err != nil {
-		return fmt.Errorf("failed to publish message: %v", err)
+	)
+	if err != nil {
+		p.logger.Errorf("Failed to publish message to exchange %s with error: %v", p.exchangeName, err)
+		return errors.Wrapf(err, "failed to publish message: %v", err)
 	}
+
+	p.logger.Infof("Successfully published message to exchange: %s, with routingKey: %s", p.exchangeName, p.bindingKey)
 
 	return nil
 }
 
-// CloseChan closes connection to a broker
-func (p *amqpPublisherClient) CloseChan() {
-	p.client.CloseChan()
+// Close closes connection to a broker
+func (p *amqpPublisherClient) Close() {
+	p.client.Close()
 }
 
 func (p *amqpPublisherClient) Configure(opts ...Option) AmqpEventPublisher {

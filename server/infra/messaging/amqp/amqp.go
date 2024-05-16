@@ -11,7 +11,6 @@ import (
 // AmqpClient defines an interface that Advanced Message Queuing Protocol clients implement
 type AmqpClient struct {
 	AmqpConn *rabbitmq.Connection
-	AmqpChan *rabbitmq.Channel
 	logger   logger.Logger
 }
 
@@ -45,23 +44,17 @@ func NewAmqpClient(config Config, log logger.Logger) (*AmqpClient, error) {
 		continue
 	}
 
-	log.Info("Connected to RabbitMQ!")
-
-	amqpChan, err := amqpConn.Channel()
-	if err != nil {
-		return nil, fmt.Errorf("failed to open a channel: %w", err)
-	}
+	log.Infof("Connected to RabbitMQ running on host: %s:%s", config.Host, config.Port)
 
 	return &AmqpClient{
 		AmqpConn: amqpConn,
-		AmqpChan: amqpChan,
 		logger:   log,
 	}, nil
 }
 
-// CloseChan closes connection to a broker
-func (p *AmqpClient) CloseChan() {
-	if err := p.AmqpChan.Close(); err != nil {
+// Close closes connection to a broker
+func (p *AmqpClient) Close() {
+	if err := p.AmqpConn.Close(); err != nil {
 		p.logger.Errorf("Publisher CloseChan: %v", err)
 	}
 }

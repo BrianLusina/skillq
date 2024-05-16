@@ -39,7 +39,7 @@ func NewClient(config Config, log logger.Logger) (storage.StorageClient, error) 
 	defer ctxCancel()
 
 	if client.IsOnline() {
-		log.Info("Minio client is online")
+		log.Infof("Minio client is online & connected to %s", config.Endpoint)
 	}
 
 	return &MinioStorageClient{
@@ -80,7 +80,7 @@ func (sc *MinioStorageClient) Upload(ctx context.Context, item storage.StorageIt
 		return "", errors.Wrapf(err, "failed to upload document")
 	}
 
-	sc.log.Infof("Successfully uploaded document %v with information: %v", item, info)
+	sc.log.Infof("Successfully uploaded document to bucket %s at location %s", info.Bucket, info.Location)
 
 	return info.Location, nil
 }
@@ -92,7 +92,7 @@ func (sc *MinioStorageClient) CreateBucket(ctx context.Context, bucket string) e
 		// Region: sc.region,
 	})
 	if err != nil {
-		sc.log.Errorf("Failed to create bucket %s", bucket)
+		sc.log.Errorf("Failed to create bucket %s, with reason: %v:", bucket, err)
 		return err
 	}
 

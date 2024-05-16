@@ -40,16 +40,16 @@ func (m *MockAmqpEventPublisher) EXPECT() *MockAmqpEventPublisherMockRecorder {
 	return m.recorder
 }
 
-// CloseChan mocks base method.
-func (m *MockAmqpEventPublisher) CloseChan() {
+// Close mocks base method.
+func (m *MockAmqpEventPublisher) Close() {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "CloseChan")
+	m.ctrl.Call(m, "Close")
 }
 
-// CloseChan indicates an expected call of CloseChan.
-func (mr *MockAmqpEventPublisherMockRecorder) CloseChan() *gomock.Call {
+// Close indicates an expected call of Close.
+func (mr *MockAmqpEventPublisherMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseChan", reflect.TypeOf((*MockAmqpEventPublisher)(nil).CloseChan))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockAmqpEventPublisher)(nil).Close))
 }
 
 // Configure mocks base method.

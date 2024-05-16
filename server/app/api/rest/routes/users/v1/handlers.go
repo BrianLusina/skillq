@@ -21,8 +21,9 @@ func (api *UserV1Api) HandleCreateUser(c *fiber.Ctx) error {
 	}
 
 	userRequest := inbound.UserRequest{
-		Name:  payload.Name,
-		Email: payload.Email,
+		Name:     payload.Name,
+		Email:    payload.Email,
+		Password: payload.Password,
 		Image: inbound.UserImageRequest{
 			Type:    payload.Image.ImageType,
 			Content: payload.Image.Content,
