@@ -21,13 +21,13 @@ import (
 
 // userService is the structure for the business logic handling user management
 type userService struct {
-	userRepo              repositories.UserRepoPort
-	userVerificationRepo  repositories.UserVerificationRepoPort
-	eventMessagePublisher amqppublisher.AmqpEventPublisher
-	storageClient         storage.StorageClient
+	userRepo                            repositories.UserRepoPort
+	userVerificationRepo                repositories.UserVerificationRepoPort
+	userEmailVerificationEventPublisher amqppublisher.AmqpEventPublisher
+	storageClient                       storage.StorageClient
 }
 
-var _ inbound.UserUseCase = (*userService)(nil)
+var _ inbound.UserService = (*userService)(nil)
 
 // New creates a new user service implementation of the user use case
 func New(
@@ -35,12 +35,12 @@ func New(
 	userVerificationRepo repositories.UserVerificationRepoPort,
 	messagePublisher amqppublisher.AmqpEventPublisher,
 	storageClient storage.StorageClient,
-) inbound.UserUseCase {
+) inbound.UserService {
 	return &userService{
-		userRepo:              userRepo,
-		userVerificationRepo:  userVerificationRepo,
-		eventMessagePublisher: messagePublisher,
-		storageClient:         storageClient,
+		userRepo:                            userRepo,
+		userVerificationRepo:                userVerificationRepo,
+		userEmailVerificationEventPublisher: messagePublisher,
+		storageClient:                       storageClient,
 	}
 }
 
@@ -82,10 +82,19 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// TODO: move to goroutine
-	// create email verification & send it
-	if _, err := svc.CreateEmailVerification(ctx, createdUser.UUID()); err != nil {
-		return nil, errors.Wrapf(err, "failed to create user email verification")
+	event := events.EmailVerificationStarted{
+		UserUUID: createdUser.UUID(),
+		Email:    createdUser.Email(),
+	}
+
+	eventBytes, err := events.EventToBytes(event)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse user email verification event")
+	}
+
+	// publish event
+	if err := svc.userEmailVerificationEventPublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
+		return nil, errors.Wrapf(err, "failed to publish user email verification event")
 	}
 
 	// TODO: move to goroutine
@@ -97,53 +106,6 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 
 	// update user image in response
 	return mapUserToUserResponse(createdUser.WithImage(imageUrl)), nil
-}
-
-// CreateEmailVerification creates a user verification & publishes it to a topic for a listener to send to a user
-func (svc *userService) CreateEmailVerification(ctx context.Context, userUUID id.UUID) (user.UserVerification, error) {
-	// retrieve the existingUser
-	existingUser, err := svc.userRepo.GetUserByUUID(ctx, userUUID)
-	if err != nil {
-		return user.UserVerification{}, fmt.Errorf("failed to retrieve user %w", err)
-	}
-
-	code := security.GenerateCode()
-
-	verificationId := id.NewUUID()
-	now := time.Now()
-
-	verification := user.NewVerification(user.UserVerificationParams{
-		ID:         verificationId,
-		UserId:     existingUser.UUID(),
-		Code:       code,
-		IsVerified: false,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-	})
-
-	// create user verification
-	if _, err := svc.userVerificationRepo.CreateUserVerification(ctx, verification); err != nil {
-		return user.UserVerification{}, fmt.Errorf("failed to create email verification: %w", err)
-	}
-
-	event := events.UserEmailVerificationStarted{
-		UserUUID: existingUser.UUID(),
-		Email:    existingUser.Email(),
-		Name:     existingUser.Name(),
-		Code:     code,
-	}
-
-	eventBytes, err := events.EventToBytes(event)
-	if err != nil {
-		return user.UserVerification{}, errors.Wrapf(err, "failed to send user email verification")
-	}
-
-	// TODO: move to separate goroutine
-	if err := svc.eventMessagePublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
-		return user.UserVerification{}, errors.Wrapf(err, "failed to publish user email verified task")
-	}
-
-	return verification, nil
 }
 
 // GetUserByUUID retrieves a user given their UUID

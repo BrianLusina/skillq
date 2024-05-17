@@ -2,6 +2,7 @@ package amqppublisher
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/BrianLusina/skillq/server/infra/logger"
@@ -38,7 +39,7 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, body []byte, contentT
 	amqpChan, err := p.client.AmqpConn.Channel()
 	if err != nil {
 		p.logger.Errorf("Failed to open channel: %v", err)
-		return errors.Wrapf(err, "failed to open a channel: %w", err)
+		return fmt.Errorf("failed to open a channel: %w", err)
 	}
 	defer amqpChan.Close()
 

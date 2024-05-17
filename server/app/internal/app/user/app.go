@@ -12,26 +12,33 @@ import (
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
 )
 
-// UserApp is a structure for the user application
-type UserApp struct {
-	MongoDbConfig mongodb.MongoDBConfig
-	AmqpConfig    amqp.Config
-	MinioConfig   minio.Config
+type (
+	// UserApp is a structure for the user application
+	UserApp struct {
+		MongoDbConfig mongodb.MongoDBConfig
+		AmqpConfig    amqp.Config
+		MinioConfig   minio.Config
 
-	Logger logger.Logger
+		Logger logger.Logger
 
-	UsersMongoDbClient            mongodb.MongoDBClient[models.UserModel]
-	UserVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel]
+		UsersMongoDbClient            mongodb.MongoDBClient[models.UserModel]
+		UserVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel]
 
-	UserVerificationRepo repositories.UserVerificationRepoPort
-	UserRepo             repositories.UserRepoPort
+		UserVerificationRepo repositories.UserVerificationRepoPort
+		UserRepo             repositories.UserRepoPort
 
-	AmqpClient         *amqp.AmqpClient
-	AmqpEventPublisher amqppublisher.AmqpEventPublisher
-	StorageClient      storage.StorageClient
+		AmqpClient         *amqp.AmqpClient
+		AmqpEventPublisher amqppublisher.AmqpEventPublisher
+		StorageClient      storage.StorageClient
 
-	UserSvc inbound.UserUseCase
-}
+		UserSvc inbound.UserService
+	}
+
+	UserVerificationApp struct {
+		MongoDbConfig        mongodb.MongoDBConfig
+		UserVerificationRepo repositories.UserVerificationRepoPort
+	}
+)
 
 // New creates a new UserApp
 func New(
@@ -46,7 +53,7 @@ func New(
 	storageClient storage.StorageClient,
 	userRepo repositories.UserRepoPort,
 	userVerificationRepo repositories.UserVerificationRepoPort,
-	userSvc inbound.UserUseCase,
+	userSvc inbound.UserService,
 ) *UserApp {
 	return &UserApp{
 		MongoDbConfig:                 mongodbConfig,

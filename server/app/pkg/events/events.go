@@ -1,10 +1,23 @@
 package events
 
-import "github.com/BrianLusina/skillq/server/domain/id"
+import (
+	sharedkernel "github.com/BrianLusina/skillq/server/domain"
+	"github.com/BrianLusina/skillq/server/domain/id"
+)
 
-type UserEmailVerificationStarted struct {
-	UserUUID id.UUID
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Code     string `json:"code"`
+// EmailVerificationStarted is an event that triggers the start of email verification
+type EmailVerificationStarted struct {
+	sharedkernel.DomainEvent
+	UserUUID id.UUID `json:"userId"`
+	Name     string  `json:"name"`
+	Email    string  `json:"email"`
+}
+
+// EmailVerificationSent is an event that is triggered to signal that an email verification has been sent
+type EmailVerificationSent struct {
+	sharedkernel.DomainEvent
+	UserUUID id.UUID `json:"userId"`
+	Email    string  `json:"email"`
+	Name     string  `json:"name"`
+	Code     string  `json:"code"`
 }

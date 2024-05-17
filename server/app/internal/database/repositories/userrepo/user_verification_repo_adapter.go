@@ -70,3 +70,8 @@ func (repo *userVerificationRepoAdapter) GetUserVerificationByCode(ctx context.C
 
 	return &u, nil
 }
+
+// UpdateUserVerification updates the user verification
+func (repo *userVerificationRepoAdapter) UpdateUserVerification(ctx context.Context, request repositories.UpdateUserVerificationRequest) error {
+
+}

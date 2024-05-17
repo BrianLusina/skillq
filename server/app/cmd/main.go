@@ -95,13 +95,13 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 		},
 	}
 
-	// userVerificationMongodbConfig := mongodb.MongoDBConfig{
-	// 	Client: mongoDbConfig.Client,
-	// 	DBConfig: mongodb.DatabaseConfig{
-	// 		DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
-	// 		CollectionName: cfg.MongoDB.Collections["userVerification"].Name,
-	// 	},
-	// }
+	userVerificationMongodbConfig := mongodb.MongoDBConfig{
+		Client: mongoDbConfig.Client,
+		DBConfig: mongodb.DatabaseConfig{
+			DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
+			CollectionName: cfg.MongoDB.Collections["userVerification"].Name,
+		},
+	}
 
 	// collections := cfg.MongoDB.Collections
 

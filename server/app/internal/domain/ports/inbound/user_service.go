@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/domain/id"
 )
@@ -43,13 +42,10 @@ type UserResponse struct {
 	JobTitle  string
 }
 
-// UserUserCase contains a method set defining the logic to handle user management in the system
-type UserUseCase interface {
+// UserService contains a method set defining the logic to handle user management in the system
+type UserService interface {
 	// CreateUser creates a new user in the system
 	CreateUser(context.Context, UserRequest) (*UserResponse, error)
-
-	// CreateEmailVerification creates user verification structure that is used to verify a user's email address
-	CreateEmailVerification(context.Context, id.UUID) (user.UserVerification, error)
 
 	// GetUserByUUID retrieves a user given their UUID
 	GetUserByUUID(context.Context, string) (*UserResponse, error)
