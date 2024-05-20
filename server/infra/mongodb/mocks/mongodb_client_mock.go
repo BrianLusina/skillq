@@ -128,3 +128,17 @@ func (mr *MockMongoDBClientMockRecorder[T]) Insert(ctx, model any) *gomock.Call 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockMongoDBClient[T])(nil).Insert), ctx, model)
 }
+
+// Update mocks base method.
+func (m *MockMongoDBClient[T]) Update(ctx context.Context, model T, updateOptions mongodb.UpdateOptions) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, model, updateOptions)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockMongoDBClientMockRecorder[T]) Update(ctx, model, updateOptions any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockMongoDBClient[T])(nil).Update), ctx, model, updateOptions)
+}

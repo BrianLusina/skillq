@@ -26,3 +26,27 @@ type FilterOptions struct {
 	// FieldFilter is the map to apply to a filter to retrieve fields that match the given criteria
 	FieldFilter map[string]map[string]string
 }
+
+// UpdateOptions is a structure that contains update options
+type UpdateOptions struct {
+	// Upsert sets whether to create a record if it is not found while updating
+	Upsert bool
+
+	// FieldOptions are field options to use for updating a document
+	FieldOptions map[string]any
+
+	// SetOptions are set options to use for updating a nested document in a document
+	SetOptions map[string]map[string]any
+
+	// FilterParams is the filter parameters to use for querying a document to update
+	FilterParams FilterParams
+}
+
+// FilterParams are the filter parameters used for querying specific fields in a document
+type FilterParams struct {
+	// Key is the name of the field of the document
+	Key string
+
+	// Value is the value of the field to query the document
+	Value any
+}

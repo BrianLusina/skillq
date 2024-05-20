@@ -9,6 +9,7 @@ package userapp
 import (
 	"github.com/BrianLusina/skillq/server/app/di"
 	"github.com/BrianLusina/skillq/server/app/internal/database/repositories/userrepo"
+	userverificationrepo "github.com/BrianLusina/skillq/server/app/internal/database/repositories/userverification"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/services/usersvc"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
@@ -37,7 +38,7 @@ func InitializeUserApp(mongodbConfig mongodb.MongoDBConfig, amqpConfig amqp.Conf
 		return nil, nil, err
 	}
 	userRepoPort := userrepo.New(mongoDBClient)
-	userVerificationRepoPort := userrepo.NewVerification(mongodbMongoDBClient)
+	userVerificationRepoPort := userverificationrepo.New(mongodbMongoDBClient)
 	userUseCase := usersvc.New(userRepoPort, userVerificationRepoPort, amqpEventPublisher, storageClient)
 	userApp := New(mongodbConfig, amqpConfig, minioConfig, loggerLogger, mongoDBClient, mongodbMongoDBClient, amqpClient, amqpEventPublisher, storageClient, userRepoPort, userVerificationRepoPort, userUseCase)
 	return userApp, func() {

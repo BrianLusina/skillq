@@ -20,6 +20,9 @@ type MongoDBClient[T any] interface {
 	// FindAll retrieves all the items with a given filter
 	FindAll(ctx context.Context, filterOptions FilterOptions) ([]T, error)
 
+	// Update updates the model
+	Update(ctx context.Context, model T, updateOptions UpdateOptions) error
+
 	// Delete deletes a record given it's ID name and the id value
 	Delete(ctx context.Context, keyName string, id string) error
 

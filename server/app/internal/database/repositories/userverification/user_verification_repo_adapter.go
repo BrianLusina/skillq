@@ -1,4 +1,4 @@
-package userrepo
+package userverificationrepo
 
 import (
 	"context"
@@ -19,8 +19,8 @@ type userVerificationRepoAdapter struct {
 
 var _ repositories.UserVerificationRepoPort = (*userVerificationRepoAdapter)(nil)
 
-// NewVerification creates a new user verification repository adapter
-func NewVerification(dbClient mongodb.MongoDBClient[models.UserVerificationModel]) repositories.UserVerificationRepoPort {
+// New creates a new user verification repository adapter
+func New(dbClient mongodb.MongoDBClient[models.UserVerificationModel]) repositories.UserVerificationRepoPort {
 	return &userVerificationRepoAdapter{
 		dbClient: dbClient,
 	}
@@ -73,5 +73,26 @@ func (repo *userVerificationRepoAdapter) GetUserVerificationByCode(ctx context.C
 
 // UpdateUserVerification updates the user verification
 func (repo *userVerificationRepoAdapter) UpdateUserVerification(ctx context.Context, request repositories.UpdateUserVerificationRequest) error {
+	userVerification, err := repo.dbClient.FindById(ctx, "user_id", request.UserID.String())
+	if err != nil {
+		return errors.Wrapf(err, "failed to retrieve user verification for user id %s", request.UserID)
+	}
 
+	userVerification.IsVerified = request.IsVerified
+
+	err = repo.dbClient.Update(ctx, userVerification, mongodb.UpdateOptions{
+		Upsert: false,
+		FieldOptions: map[string]any{
+			"is_verified": request.IsVerified,
+		},
+		FilterParams: mongodb.FilterParams{
+			Key:   "uuid",
+			Value: userVerification.UUID,
+		},
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to update user verification for user %s", request.UserID)
+	}
+	return nil
 }

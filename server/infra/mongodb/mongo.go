@@ -167,6 +167,44 @@ func (client *mongoDBClient[T]) FindAll(ctx context.Context, filterOptions Filte
 	return results, nil
 }
 
+// Update updates the model
+func (client *mongoDBClient[T]) Update(ctx context.Context, model T, updateOptions UpdateOptions) error {
+	opts := options.Update().SetUpsert(updateOptions.Upsert)
+
+	update := bson.D{}
+
+	for key, value := range updateOptions.FieldOptions {
+		update = append(update, bson.E{Key: "$set", Value: bson.D{{Key: key, Value: value}}})
+	}
+
+	for key, value := range updateOptions.SetOptions {
+		nestedDocument := bson.D{}
+
+		for k, v := range value {
+			nestedDocument = append(nestedDocument, bson.E{Key: k, Value: v})
+		}
+
+		update = append(update, bson.E{Key: "$addToSet", Value: bson.D{{Key: key, Value: nestedDocument}}})
+	}
+
+	filter := bson.D{{Key: updateOptions.FilterParams.Key, Value: updateOptions.FilterParams.Value}}
+
+	result, err := client.collection.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		return errors.Wrapf(err, "failed to update item %v", model)
+	}
+
+	if result.MatchedCount != 0 {
+		client.logger.Info("Matched and replaced an existing document")
+	}
+
+	if result.UpsertedCount != 0 {
+		client.logger.Infof("Inserted a new document with ID %v", result.UpsertedID)
+	}
+
+	return nil
+}
+
 // Disconnect disconnects from a mongo db client connection
 func (client *mongoDBClient[T]) Disconnect(ctx context.Context) error {
 	return client.mongoClient.Disconnect(ctx)

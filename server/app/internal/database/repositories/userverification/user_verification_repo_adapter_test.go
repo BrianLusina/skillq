@@ -1,4 +1,4 @@
-package userrepo
+package userverificationrepo
 
 import (
 	"context"
@@ -16,62 +16,59 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestUserRepoAdapter(t *testing.T) {
+func TestUserVerificationRepoAdapter(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	mockDbClient := mockmongodb.NewMockMongoDBClient[models.UserModel](mockCtrl)
-	userRepositoryAdapter := userRepoAdapter{dbClient: mockDbClient}
+	mockDbClient := mockmongodb.NewMockMongoDBClient[models.UserVerificationModel](mockCtrl)
+	userRepositoryAdapter := userVerificationRepoAdapter{dbClient: mockDbClient}
 	adapter := New(mockDbClient)
 	assert.NotNil(t, adapter)
 
 	ctx := context.Background()
 
-	t.Run("creating a user", func(t *testing.T) {
-		t.Run("should return error when there is a failure to create user", func(t *testing.T) {
+	t.Run("creating a user verification", func(t *testing.T) {
+		t.Run("should return error when there is a failure to create user verication", func(t *testing.T) {
 			defer mockCtrl.Finish()
 
-			dbErr := errors.New("failed to create")
+			dbErr := errors.New("failed to create user verification")
 
 			mockDbClient.EXPECT().Insert(ctx, gomock.Any()).Return(primitive.ObjectID{}, dbErr).Times(1)
 
-			testUser, err := mockuser.MockUser()
-			assert.NoError(t, err)
+			testUserVerification := mockuser.MockUserVerification("some_code")
 
-			actual, err := userRepositoryAdapter.CreateUser(ctx, *testUser)
+			actual, err := userRepositoryAdapter.CreateUserVerification(ctx, testUserVerification)
 			assert.Error(t, err)
 			assert.Nil(t, actual)
 		})
 
-		t.Run("should return created user when there is a success in creating user", func(t *testing.T) {
+		t.Run("should return created user verification when there is a success in creating user verification", func(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockDbClient.EXPECT().Insert(ctx, gomock.Any()).Return(primitive.ObjectID{}, nil).Times(1)
 
-			testUser, err := mockuser.MockUser()
-			assert.NoError(t, err)
+			testUserVerification := mockuser.MockUserVerification("test_code")
 
-			actual, err := userRepositoryAdapter.CreateUser(ctx, *testUser)
+			actual, err := userRepositoryAdapter.CreateUserVerification(ctx, testUserVerification)
 			assert.NoError(t, err)
 			assert.NotNil(t, actual)
 		})
 	})
 
 	t.Run("Get user", func(t *testing.T) {
-		testUser, err := mockuser.MockUser()
-		assert.NoError(t, err)
+		testUserVerification := mockuser.MockUserVerification("somecode")
 
-		testUserModel := mapUserToModel(*testUser)
+		testUserVerificationModel := mapUserVerificationToModel(testUserVerification)
 
 		t.Run("by ID", func(t *testing.T) {
 
-			t.Run("should return nil & error when there is a failure to retrieve user by UUID", func(t *testing.T) {
+			t.Run("should return nil & error when there is a failure to retrieve user verification by ID", func(t *testing.T) {
 				defer mockCtrl.Finish()
 
-				userUUID := testUser.UUID()
+				userVerificationID := testUserVerification.ID()
 
-				dbError := errors.New("failed to retrieve user")
-				mockDbClient.EXPECT().FindById(ctx, "uuid", userUUID.String()).Return(models.UserModel{}, dbError).Times(1)
+				dbError := errors.New("failed to retrieve user verification")
+				mockDbClient.EXPECT().FindById(ctx, "uuid", userVerificationID.String()).Return(models.UserVerificationModel{}, dbError).Times(1)
 
-				actualUser, err := userRepositoryAdapter.GetUserByUUID(ctx, userUUID)
+				actualUser, err := userRepositoryAdapter.GetUserVerificationByUUID(ctx, userVerificationID)
 				assert.Error(t, err)
 				assert.Nil(t, actualUser)
 			})
@@ -79,9 +76,9 @@ func TestUserRepoAdapter(t *testing.T) {
 			t.Run("should return user model & error when there is a success in retrieving a user by UUID", func(t *testing.T) {
 				defer mockCtrl.Finish()
 
-				userUUID := testUser.UUID()
+				userUUID := testUserVerification.UUID()
 
-				mockDbClient.EXPECT().FindById(ctx, "uuid", userUUID.String()).Return(testUserModel, nil).Times(1)
+				mockDbClient.EXPECT().FindById(ctx, "uuid", userUUID.String()).Return(testUserVerificationModel, nil).Times(1)
 
 				actualUser, err := userRepositoryAdapter.GetUserByUUID(ctx, userUUID)
 				assert.NoError(t, err)
