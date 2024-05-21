@@ -10,6 +10,8 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
+	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
+	"github.com/BrianLusina/skillq/server/app/pkg/utils"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
@@ -22,8 +24,8 @@ import (
 // userService is the structure for the business logic handling user management
 type userService struct {
 	userRepo                            repositories.UserRepoPort
-	userVerificationRepo                repositories.UserVerificationRepoPort
 	userEmailVerificationEventPublisher amqppublisher.AmqpEventPublisher
+	storeImageTaskPublisher             amqppublisher.AmqpEventPublisher
 	storageClient                       storage.StorageClient
 }
 
@@ -33,13 +35,14 @@ var _ inbound.UserService = (*userService)(nil)
 func New(
 	userRepo repositories.UserRepoPort,
 	userVerificationRepo repositories.UserVerificationRepoPort,
-	messagePublisher amqppublisher.AmqpEventPublisher,
+	userEmailVerificationEventPublisher amqppublisher.AmqpEventPublisher,
+	storeImageTaskPublisher amqppublisher.AmqpEventPublisher,
 	storageClient storage.StorageClient,
 ) inbound.UserService {
 	return &userService{
 		userRepo:                            userRepo,
-		userVerificationRepo:                userVerificationRepo,
-		userEmailVerificationEventPublisher: messagePublisher,
+		userEmailVerificationEventPublisher: userEmailVerificationEventPublisher,
+		storeImageTaskPublisher:             storeImageTaskPublisher,
 		storageClient:                       storageClient,
 	}
 }
@@ -87,7 +90,7 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		Email:    createdUser.Email(),
 	}
 
-	eventBytes, err := events.EventToBytes(event)
+	eventBytes, err := utils.MessageDataToBytes(event)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse user email verification event")
 	}
@@ -97,15 +100,25 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		return nil, errors.Wrapf(err, "failed to publish user email verification event")
 	}
 
-	// TODO: move to goroutine
-	// send image data to persist to blob storage & persist the image URL in the database
-	imageUrl, err := svc.UploadUserImage(ctx, createdUser.UUID(), request.Image)
+	task := tasks.StoreUserImage{
+		ContentType: request.Image.Type,
+		Content:     request.Image.Content,
+		Name:        fmt.Sprintf("%s-image", createdUser.UUID()),
+		Bucket:      fmt.Sprintf("%s-documents", createdUser.UUID()),
+	}
+
+	taskBytes, err := utils.MessageDataToBytes(task)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to upload user image data")
+		return nil, errors.Wrapf(err, "failed to parse store user image task")
+	}
+
+	// publish store image task
+	if err := svc.storeImageTaskPublisher.Publish(ctx, taskBytes, "text/plain"); err != nil {
+		return nil, errors.Wrapf(err, "failed to publish store user image task")
 	}
 
 	// update user image in response
-	return mapUserToUserResponse(createdUser.WithImage(imageUrl)), nil
+	return mapUserToUserResponse(*createdUser), nil
 }
 
 // GetUserByUUID retrieves a user given their UUID

@@ -7,33 +7,35 @@ import (
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	"github.com/BrianLusina/skillq/server/app/internal/handlers"
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
+	"github.com/BrianLusina/skillq/server/app/pkg/utils"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/pkg/errors"
 )
 
-type emailVerificationStartedEventHandler struct {
+type emailVerificationSentEventHandler struct {
 	userVerificationSvc             inbound.UserVerificationService
 	emailVerificationEventPublisher amqppublisher.AmqpEventPublisher
 	logger                          logger.Logger
 }
 
-var _ EmailVerificationStartedEventHandler = (*emailVerificationStartedEventHandler)(nil)
+var _ handlers.EventHandler[events.EmailVerificationSent] = (*emailVerificationSentEventHandler)(nil)
 
-func NewEmailVerificationStartedEventHandler(
+func NewEmailVerificationSentEventHandler(
 	userVerificationSvc inbound.UserVerificationService,
 	messagePublisher amqppublisher.AmqpEventPublisher,
 	logger logger.Logger,
-) EmailVerificationStartedEventHandler {
-	return &emailVerificationStartedEventHandler{
+) handlers.EventHandler[events.EmailVerificationSent] {
+	return &emailVerificationSentEventHandler{
 		userVerificationSvc:             userVerificationSvc,
 		emailVerificationEventPublisher: messagePublisher,
 		logger:                          logger,
 	}
 }
 
-func (h *emailVerificationStartedEventHandler) Handle(ctx context.Context, event events.EmailVerificationStarted) error {
-	h.logger.Infof("Received event email verification started, %v", event)
+func (h *emailVerificationSentEventHandler) Handle(ctx context.Context, event events.EmailVerificationSent) error {
+	h.logger.Infof("Received event email verification sent, %v", event)
 
 	uuid, email, name := event.UserUUID, event.Email, event.Name
 
@@ -51,7 +53,7 @@ func (h *emailVerificationStartedEventHandler) Handle(ctx context.Context, event
 		Code:     verification.Code(),
 	}
 
-	eventBytes, err := events.EventToBytes(sendEmailEvent)
+	eventBytes, err := utils.MessageDataToBytes(sendEmailEvent)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to parse event %v", sendEmailEvent)
 		h.logger.Errorf(msg)

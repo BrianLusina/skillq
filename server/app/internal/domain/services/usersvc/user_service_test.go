@@ -29,24 +29,24 @@ var _ = Describe("User Service", func() {
 	t := GinkgoT()
 
 	var (
-		mockCtrl                 *gomock.Controller
-		mockUserRepo             *mockuserrepo.MockUserRepoPort
-		mockUserVerificationRepo *mockuserrepo.MockUserVerificationRepoPort
-		mockPublisher            *mockamqppublisher.MockAmqpEventPublisher
-		mockStorageClient        *mockstorageclient.MockStorageClient
-		userSvc                  userService
+		mockCtrl                                *gomock.Controller
+		mockUserRepo                            *mockuserrepo.MockUserRepoPort
+		mockUserEmailVerificationEventPublisher *mockamqppublisher.MockAmqpEventPublisher
+		mockStoreImageTaskPublisher             *mockamqppublisher.MockAmqpEventPublisher
+		mockStorageClient                       *mockstorageclient.MockStorageClient
+		userSvc                                 userService
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(t)
 		mockUserRepo = mockuserrepo.NewMockUserRepoPort(mockCtrl)
-		mockUserVerificationRepo = mockuserrepo.NewMockUserVerificationRepoPort(mockCtrl)
-		mockPublisher = mockamqppublisher.NewMockAmqpEventPublisher(mockCtrl)
+		mockUserEmailVerificationEventPublisher = mockamqppublisher.NewMockAmqpEventPublisher(mockCtrl)
+		mockStoreImageTaskPublisher = mockamqppublisher.NewMockAmqpEventPublisher(mockCtrl)
 		mockStorageClient = mockstorageclient.NewMockStorageClient(mockCtrl)
 		userSvc = userService{
 			userRepo:                            mockUserRepo,
-			userVerificationRepo:                mockUserVerificationRepo,
-			userEmailVerificationEventPublisher: mockPublisher,
+			userEmailVerificationEventPublisher: mockUserEmailVerificationEventPublisher,
+			storeImageTaskPublisher:             mockStoreImageTaskPublisher,
 			storageClient:                       mockStorageClient,
 		}
 
@@ -100,24 +100,21 @@ var _ = Describe("User Service", func() {
 				// no query to fetch user by UUID was triggered
 				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Times(0)
 
-				// no user verification was created
-				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Times(0)
-
 				// no message was published
-				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
+				mockUserEmailVerificationEventPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
 
-				// no call to store image
-				mockStorageClient.EXPECT().Upload(ctx, gomock.Any()).Times(0)
+				// no task was published
+				mockStoreImageTaskPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
 
 				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
 				assert.Nil(t, actualUser)
 				assert.Error(t, actualErr)
 			})
 
-			It("should return error when repo fails to query user by UUID when creating email verification", func() {
+			It("should return error when publisher fails to publish verification event after creating user", func() {
 				defer mockCtrl.Finish()
 
-				mockRepoError := errors.New("failed to fetch user by UUID")
+				mockPublisherError := errors.New("failed to publish user verification event")
 
 				request := inbound.UserRequest{
 					Name:     "John Doe",
@@ -153,27 +150,20 @@ var _ = Describe("User Service", func() {
 				// no error when creating user
 				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
 
-				// query to fetch user by UUID was triggered & failed
-				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Return(nil, mockRepoError).Times(1)
+				// message failed to publish
+				mockUserEmailVerificationEventPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(mockPublisherError).Times(1)
 
-				// no user verification was created
-				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Times(0)
-
-				// no message was published
-				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
-
-				// no call to store image
-				mockStorageClient.EXPECT().Upload(ctx, gomock.Any()).Times(0)
+				// no call to publish task
+				mockStoreImageTaskPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
 
 				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
 				assert.Nil(t, actualUser)
 				assert.Error(t, actualErr)
 			})
 
-			It("should return error when repo fails to create user verification when creating email verification", func() {
+			It("should return error when task publisher fails to publish store user image task", func() {
 				defer mockCtrl.Finish()
-
-				mockRepoError := errors.New("failed to save user verification")
+				mockPublisherError := errors.New("failed to publish store user image task")
 
 				request := inbound.UserRequest{
 					Name:     "John Doe",
@@ -209,97 +199,23 @@ var _ = Describe("User Service", func() {
 				// no error when creating user
 				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
 
-				// query to fetch user by UUID was triggered & failed
-				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
+				// message was published
+				mockUserEmailVerificationEventPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-				// no user verification was created
-				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(nil, mockRepoError).Times(1)
-
-				// no message was published
-				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
-
-				// no call to store image
-				mockStorageClient.EXPECT().Upload(ctx, gomock.Any()).Times(0)
+				// failure to publish store image task
+				mockStoreImageTaskPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(mockPublisherError).Times(1)
 
 				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
 				assert.Nil(t, actualUser)
 				assert.Error(t, actualErr)
 			})
 
-			It("should return error when there is a failure to publish user email verification when creating email verification", func() {
+			It("should return nil error when there is success creating a user, publishing user email verification event and store image task", func() {
 				defer mockCtrl.Finish()
-
-				mockError := errors.New("failed to publish user verification")
-
-				request := inbound.UserRequest{
-					Name:     "John Doe",
-					Email:    "fake@example.com",
-					Password: "password",
-					Skills:   []string{},
-					Image:    inbound.UserImageRequest{},
-					JobTitle: "The Boss",
-				}
-
-				createdUser, err := user.New(user.UserParams{
-					EntityParams: entity.EntityParams{
-						EntityIDParams: entity.EntityIDParams{
-							UUID:  id.NewUUID(),
-							KeyID: id.NewKeyID(),
-							XID:   id.NewXid(),
-						},
-						EntityTimestampParams: entity.EntityTimestampParams{
-							CreatedAt: time.Now(),
-							UpdatedAt: time.Now(),
-						},
-						Metadata: map[string]any{},
-					},
-					Name:     request.Name,
-					Email:    request.Email,
-					Skills:   request.Skills,
-					JobTitle: request.JobTitle,
-					Password: "hashedPassword",
-				})
-
-				assert.NoError(t, err)
-
-				// no error when creating user
-				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
-
-				// query to fetch user by UUID was triggered & failed
-				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
-
-				userVerification := user.NewVerification(user.UserVerificationParams{
-					ID:         id.NewUUID(),
-					UserId:     createdUser.UUID(),
-					Code:       "code",
-					IsVerified: false,
-					CreatedAt:  time.Now(),
-					UpdatedAt:  time.Now(),
-				})
-
-				// user verification was created
-				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
-
-				// message failed to be published
-				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(mockError).Times(1)
-
-				// no call to store image
-				mockStorageClient.EXPECT().Upload(ctx, gomock.Any()).Times(0)
-
-				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
-				assert.Nil(t, actualUser)
-				assert.Error(t, actualErr)
-			})
-
-			It("should return error when there is a failure in uploading user image", func() {
-				defer mockCtrl.Finish()
-
-				mockError := errors.New("failed to publish user verification")
 				imageRequest := inbound.UserImageRequest{
 					Type:    "image/png",
 					Content: "",
 				}
-
 				request := inbound.UserRequest{
 					Name:     "John Doe",
 					Email:    "fake@example.com",
@@ -334,95 +250,10 @@ var _ = Describe("User Service", func() {
 				// no error when creating user
 				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
 
-				// query to fetch user by UUID was triggered & failed
-				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
-
-				userVerification := user.NewVerification(user.UserVerificationParams{
-					ID:         id.NewUUID(),
-					UserId:     createdUser.UUID(),
-					Code:       "code",
-					IsVerified: false,
-					CreatedAt:  time.Now(),
-					UpdatedAt:  time.Now(),
-				})
-
-				// user verification was created
-				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
-
 				// message failed to be published
-				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockUserEmailVerificationEventPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-				// no call to store image
-				mockStorageClient.EXPECT().Upload(ctx, gomock.Any()).Return("", mockError).Times(1)
-
-				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
-				assert.Nil(t, actualUser)
-				assert.Error(t, actualErr)
-			})
-
-			It("should return success when there is a success in creating new user", func() {
-				defer mockCtrl.Finish()
-
-				imageRequest := inbound.UserImageRequest{
-					Type:    "image/png",
-					Content: "",
-				}
-
-				request := inbound.UserRequest{
-					Name:     "John Doe",
-					Email:    "fake@example.com",
-					Password: "password",
-					Skills:   []string{},
-					Image:    imageRequest,
-					JobTitle: "The Boss",
-				}
-
-				createdUser, err := user.New(user.UserParams{
-					EntityParams: entity.EntityParams{
-						EntityIDParams: entity.EntityIDParams{
-							UUID:  id.NewUUID(),
-							KeyID: id.NewKeyID(),
-							XID:   id.NewXid(),
-						},
-						EntityTimestampParams: entity.EntityTimestampParams{
-							CreatedAt: time.Now(),
-							UpdatedAt: time.Now(),
-						},
-						Metadata: map[string]any{},
-					},
-					Name:     request.Name,
-					Email:    request.Email,
-					Skills:   request.Skills,
-					JobTitle: request.JobTitle,
-					Password: "hashedPassword",
-				})
-
-				assert.NoError(t, err)
-
-				// no error when creating user
-				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
-
-				// query to fetch user by UUID was triggered & failed
-				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
-
-				userVerification := user.NewVerification(user.UserVerificationParams{
-					ID:         id.NewUUID(),
-					UserId:     createdUser.UUID(),
-					Code:       "code",
-					IsVerified: false,
-					CreatedAt:  time.Now(),
-					UpdatedAt:  time.Now(),
-				})
-
-				// user verification was created
-				mockUserVerificationRepo.EXPECT().CreateUserVerification(ctx, gomock.Any()).Return(&userVerification, nil).Times(1)
-
-				// message failed to be published
-				mockPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-				// no call to store image
-				url := faker.URL()
-				mockStorageClient.EXPECT().Upload(ctx, gomock.Any()).Return(url, nil).Times(1)
+				mockStoreImageTaskPublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
 				assert.NotNil(t, actualUser)

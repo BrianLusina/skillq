@@ -3,13 +3,10 @@ package userverificationrepo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
-	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
 	mockuser "github.com/BrianLusina/skillq/server/app/internal/domain/entities/user/mocks"
-	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	mockmongodb "github.com/BrianLusina/skillq/server/infra/mongodb/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,7 +16,7 @@ import (
 func TestUserVerificationRepoAdapter(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockDbClient := mockmongodb.NewMockMongoDBClient[models.UserVerificationModel](mockCtrl)
-	userRepositoryAdapter := userVerificationRepoAdapter{dbClient: mockDbClient}
+	userVerificationRepositoryAdapter := userVerificationRepoAdapter{dbClient: mockDbClient}
 	adapter := New(mockDbClient)
 	assert.NotNil(t, adapter)
 
@@ -35,7 +32,7 @@ func TestUserVerificationRepoAdapter(t *testing.T) {
 
 			testUserVerification := mockuser.MockUserVerification("some_code")
 
-			actual, err := userRepositoryAdapter.CreateUserVerification(ctx, testUserVerification)
+			actual, err := userVerificationRepositoryAdapter.CreateUserVerification(ctx, testUserVerification)
 			assert.Error(t, err)
 			assert.Nil(t, actual)
 		})
@@ -47,13 +44,13 @@ func TestUserVerificationRepoAdapter(t *testing.T) {
 
 			testUserVerification := mockuser.MockUserVerification("test_code")
 
-			actual, err := userRepositoryAdapter.CreateUserVerification(ctx, testUserVerification)
+			actual, err := userVerificationRepositoryAdapter.CreateUserVerification(ctx, testUserVerification)
 			assert.NoError(t, err)
 			assert.NotNil(t, actual)
 		})
 	})
 
-	t.Run("Get user", func(t *testing.T) {
+	t.Run("get user verification", func(t *testing.T) {
 		testUserVerification := mockuser.MockUserVerification("somecode")
 
 		testUserVerificationModel := mapUserVerificationToModel(testUserVerification)
@@ -68,97 +65,46 @@ func TestUserVerificationRepoAdapter(t *testing.T) {
 				dbError := errors.New("failed to retrieve user verification")
 				mockDbClient.EXPECT().FindById(ctx, "uuid", userVerificationID.String()).Return(models.UserVerificationModel{}, dbError).Times(1)
 
-				actualUser, err := userRepositoryAdapter.GetUserVerificationByUUID(ctx, userVerificationID)
+				actualUser, err := userVerificationRepositoryAdapter.GetUserVerificationByUUID(ctx, userVerificationID)
 				assert.Error(t, err)
 				assert.Nil(t, actualUser)
 			})
 
-			t.Run("should return user model & error when there is a success in retrieving a user by UUID", func(t *testing.T) {
+			t.Run("should return user verification model & nill error when there is a success in retrieving a user verification by UUID", func(t *testing.T) {
 				defer mockCtrl.Finish()
 
-				userUUID := testUserVerification.UUID()
+				userVerificationID := testUserVerification.ID()
 
-				mockDbClient.EXPECT().FindById(ctx, "uuid", userUUID.String()).Return(testUserVerificationModel, nil).Times(1)
+				mockDbClient.EXPECT().FindById(ctx, "uuid", userVerificationID.String()).Return(testUserVerificationModel, nil).Times(1)
 
-				actualUser, err := userRepositoryAdapter.GetUserByUUID(ctx, userUUID)
+				actualUser, err := userVerificationRepositoryAdapter.GetUserVerificationByUUID(ctx, userVerificationID)
 				assert.NoError(t, err)
 				assert.NotNil(t, actualUser)
 			})
 		})
-	})
 
-	t.Run("Get all users", func(t *testing.T) {
-		testUserOne, err := mockuser.MockUser()
-		assert.NoError(t, err)
-		testUserOneModel := mapUserToModel(*testUserOne)
-
-		testUserTwo, err := mockuser.MockUser()
-		assert.NoError(t, err)
-		testUserTwoModel := mapUserToModel(*testUserTwo)
-
-		testUserThree, err := mockuser.MockUser()
-		assert.NoError(t, err)
-		testUserThreeModel := mapUserToModel(*testUserThree)
-
-		testUsers := []user.User{*testUserOne, *testUserTwo, *testUserThree}
-		testUserModels := []models.UserModel{testUserOneModel, testUserTwoModel, testUserThreeModel}
-
-		t.Run("should return nil & error when there is a failure to retrieve all users", func(t *testing.T) {
-			defer mockCtrl.Finish()
-
-			dbError := errors.New("failed to retrieve users")
-			mockDbClient.EXPECT().FindAll(ctx, map[string]map[string]string{}).Return(nil, dbError).Times(1)
-
-			actualUsers, err := userRepositoryAdapter.GetAllUsers(ctx, common.NewRequestParams())
-			assert.Error(t, err)
-			assert.Nil(t, actualUsers)
-		})
-
-		t.Run("should return users & nil error when there is a success in retrieving a users", func(t *testing.T) {
-			defer mockCtrl.Finish()
-
-			mockDbClient.EXPECT().FindAll(ctx, map[string]map[string]string{}).Return(testUserModels, nil).Times(1)
-
-			actualUsers, err := userRepositoryAdapter.GetAllUsers(ctx, common.NewRequestParams())
-			assert.NoError(t, err)
-			assert.NotNil(t, actualUsers)
-			assert.ElementsMatch(t, testUsers, actualUsers)
-		})
-
-		t.Run("by a skill", func(t *testing.T) {
-			t.Run("should return nil & error when there is a failure to retrieve all users for a given skill", func(t *testing.T) {
+		t.Run("by a code", func(t *testing.T) {
+			t.Run("should return nil & error when there is a failure to retrieve verification for a given code", func(t *testing.T) {
 				defer mockCtrl.Finish()
 
-				skill := "hunter"
-				filterValues := map[string]map[string]string{
-					"skills": {
-						"$regex":   fmt.Sprintf("(?i)%s", skill),
-						"$options": "i",
-					},
-				}
+				code := "somecode"
 
-				dbError := errors.New("failed to retrieve users")
-				mockDbClient.EXPECT().FindAll(ctx, filterValues).Return(nil, dbError).Times(1)
+				dbError := errors.New("failed to retrieve user verification")
+				mockDbClient.EXPECT().FindById(ctx, "code", code).Return(models.UserVerificationModel{}, dbError).Times(1)
 
-				actualUsers, err := userRepositoryAdapter.GetAllUsersBySkill(ctx, skill, common.NewRequestParams())
+				actualUserVerification, err := userVerificationRepositoryAdapter.GetUserVerificationByCode(ctx, code)
 				assert.Error(t, err)
-				assert.Nil(t, actualUsers)
+				assert.Nil(t, actualUserVerification)
 			})
 
-			t.Run("should return users & nil error when there is a success in retrieving users", func(t *testing.T) {
+			t.Run("should return user verification & nil error when there is a success in retrieving user verification", func(t *testing.T) {
 				defer mockCtrl.Finish()
 
-				skill := "hunter"
-				filterValues := map[string]map[string]string{
-					"skills": {
-						"$regex":   fmt.Sprintf("(?i)%s", skill),
-						"$options": "i",
-					},
-				}
+				code := "somecode"
 
-				mockDbClient.EXPECT().FindAll(ctx, filterValues).Return(testUserModels, nil).Times(1)
+				mockDbClient.EXPECT().FindById(ctx, "code", code).Return(testUserVerificationModel, nil).Times(1)
 
-				actualUsers, err := userRepositoryAdapter.GetAllUsersBySkill(ctx, skill, common.NewRequestParams())
+				actualUsers, err := userVerificationRepositoryAdapter.GetUserVerificationByCode(ctx, code)
 				assert.NoError(t, err)
 				assert.NotNil(t, actualUsers)
 			})
