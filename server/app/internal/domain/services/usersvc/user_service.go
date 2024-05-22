@@ -173,6 +173,50 @@ func (svc *userService) GetAllUsersBySkill(ctx context.Context, skill string, pa
 	})
 }
 
+// UpdateUser updates a user given their ID
+func (svc *userService) UpdateUser(ctx context.Context, userID string, request inbound.UserRequest) (*inbound.UserResponse, error) {
+	userUUID, err := id.StringToUUID(userID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse user ID %s", userUUID)
+	}
+
+	// get user
+	existingUser, err := svc.userRepo.GetUserByUUID(ctx, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve user %w", err)
+	}
+
+	// update fields
+	url, err := svc.UploadUserImage(ctx, userUUID, request.Image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to upload user image %s", request.Image)
+	}
+
+	existingUpdatedUser, err := existingUser.SetName(request.Name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update user name %s", request.Name)
+	}
+
+	existingUpdatedUser, err = existingUpdatedUser.SetEmail(request.Email)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update user email %s", request.Email)
+	}
+
+	existingUpdatedUser, err = existingUpdatedUser.SetJobTitle(request.JobTitle)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update user job title %s", request.JobTitle)
+	}
+
+	existingUpdatedUser = existingUpdatedUser.SetSkills(request.Skills).SetImageUrl(url)
+
+	updatedUser, err := svc.userRepo.UpdateUser(ctx, *existingUpdatedUser)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update user %s", userID)
+	}
+
+	return mapUserToUserResponse(*updatedUser), nil
+}
+
 // DeleteUser deletes a given user
 func (svc *userService) DeleteUser(ctx context.Context, userId string) error {
 	uuid, err := id.StringToUUID(userId)

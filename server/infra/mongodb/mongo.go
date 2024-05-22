@@ -174,7 +174,12 @@ func (client *mongoDBClient[T]) Update(ctx context.Context, model T, updateOptio
 	update := bson.D{}
 
 	for key, value := range updateOptions.FieldOptions {
-		update = append(update, bson.E{Key: "$set", Value: bson.D{{Key: key, Value: value}}})
+		switch v := value.(type) {
+		case []any:
+			update = append(update, bson.E{Key: "$addToSet", Value: bson.D{{Key: key, Value: v}}})
+		default:
+			update = append(update, bson.E{Key: "$set", Value: bson.D{{Key: key, Value: value}}})
+		}
 	}
 
 	for key, value := range updateOptions.SetOptions {

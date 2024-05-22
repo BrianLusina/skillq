@@ -22,6 +22,9 @@ type UserRepoPort interface {
 	// GetAllUsersBySkill retrieves all the users of a given skill
 	GetAllUsersBySkill(ctx context.Context, skill string, params common.RequestParams) ([]user.User, error)
 
+	// UpdateUser updates a user given their ID
+	UpdateUser(context.Context, user.User) (*user.User, error)
+
 	// DeleteUserById deletes a given user by the ID
 	DeleteUserById(ctx context.Context, userID id.UUID) error
 }

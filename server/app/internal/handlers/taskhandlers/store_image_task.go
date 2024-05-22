@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/internal/handlers"
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
+	"github.com/BrianLusina/skillq/server/domain/id"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/storage"
@@ -15,7 +16,7 @@ import (
 
 type storeUserImageTaskHandler struct {
 	storageClient                   storage.StorageClient
-	userSvc                         inbound.UserService
+	userRepo                        repositories.UserRepoPort
 	emailVerificationEventPublisher amqppublisher.AmqpEventPublisher
 	logger                          logger.Logger
 }
@@ -24,13 +25,13 @@ var _ handlers.EventHandler[tasks.StoreUserImage] = (*storeUserImageTaskHandler)
 
 func NewStoreImageTasksHandler(
 	storageClient storage.StorageClient,
-	userSvc inbound.UserService,
+	userRepo repositories.UserRepoPort,
 	messagePublisher amqppublisher.AmqpEventPublisher,
 	logger logger.Logger,
 ) handlers.EventHandler[tasks.StoreUserImage] {
 	return &storeUserImageTaskHandler{
 		storageClient:                   storageClient,
-		userSvc:                         userSvc,
+		userRepo:                        userRepo,
 		emailVerificationEventPublisher: messagePublisher,
 		logger:                          logger,
 	}
@@ -39,31 +40,39 @@ func NewStoreImageTasksHandler(
 func (h *storeUserImageTaskHandler) Handle(ctx context.Context, task tasks.StoreUserImage) error {
 	h.logger.Infof("Received tasks store user image, %v", task)
 
-	userUUID, contentType, content, name, bucket := task.UserUUID, task.ContentType, task.Content, task.Name, task.Bucket
-
-	url, err := h.storageClient.Upload(ctx, storage.StorageItem{
+	userID, contentType, content, name, bucket := task.UserUUID, task.ContentType, task.Content, task.Name, task.Bucket
+	storageItem := storage.StorageItem{
 		ContentType: contentType,
 		Content:     content,
 		Name:        name,
 		Bucket:      bucket,
-	})
+	}
 
+	url, err := h.storageClient.Upload(ctx, storageItem)
 	if err != nil {
 		return errors.Wrapf(err, "failed to store user image")
 	}
+	h.logger.Info("Successfully uploaded user image")
 
-	//TODO:  update user data
-	user, err := h.userSvc.GetUserByUUID(ctx, userUUID)
+	userUUID, err := id.StringToUUID(userID)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to create email verification for user %s for email %s", contentType.String(), content)
+		msg := fmt.Sprintf("Failed to parse user ID %s", userID)
 		h.logger.Errorf(msg)
 		return errors.Wrapf(err, msg)
 	}
 
-	if err := h.emailVerificationEventPublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
-		msg := fmt.Sprintf("Failed to publish event %v", sendEmailEvent)
+	user, err := h.userRepo.GetUserByUUID(ctx, userUUID)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to retrieve user %s", userID)
 		h.logger.Errorf(msg)
-		return errors.Wrapf(err, "failed to publish user email sent event")
+		return errors.Wrapf(err, msg)
+	}
+
+	updateUser := user.SetImageUrl(url)
+	if _, err := h.userRepo.UpdateUser(ctx, *updateUser); err != nil {
+		msg := fmt.Sprintf("Failed to update user image %s", userID)
+		h.logger.Errorf(msg)
+		return errors.Wrapf(err, msg)
 	}
 
 	return nil

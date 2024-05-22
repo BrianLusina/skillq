@@ -112,6 +112,31 @@ func (repo *userRepoAdapter) GetAllUsersBySkill(ctx context.Context, skill strin
 	})
 }
 
+// UpdateUser updates a user given their ID
+func (repo *userRepoAdapter) UpdateUser(ctx context.Context, userToUpdate user.User) (*user.User, error) {
+	userModel := mapUserToModel(userToUpdate)
+
+	err := repo.dbClient.Update(ctx, userModel, mongodb.UpdateOptions{
+		Upsert: false,
+		FieldOptions: map[string]any{
+			"name":     userToUpdate.Name(),
+			"email":    userToUpdate.Email(),
+			"jobTitle": userToUpdate.JobTitle(),
+			"url":      userToUpdate.ImageUrl(),
+			"skills":   userToUpdate.Skills(),
+		},
+		FilterParams: mongodb.FilterParams{
+			Key:   "uuid",
+			Value: userToUpdate.UUID().String(),
+		},
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update user %v", userToUpdate)
+	}
+
+	return &userToUpdate, nil
+}
+
 // DeleteUserById deletes a given user by the ID
 func (repo *userRepoAdapter) DeleteUserById(ctx context.Context, userID id.UUID) error {
 	err := repo.dbClient.Delete(ctx, "uuid", userID.String())

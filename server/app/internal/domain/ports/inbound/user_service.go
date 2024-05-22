@@ -59,6 +59,12 @@ type UserService interface {
 	// UploadUserImage uploads a user image to blob storage & retrieves the image url
 	UploadUserImage(context.Context, id.UUID, UserImageRequest) (string, error)
 
+	// UpdateUser updates a user given their ID
+	UpdateUser(ctx context.Context, userID string, request UserRequest) (*UserResponse, error)
+
+	// UpdateUserImage updates a user's image
+	// UpdateUserImage(ctx context.Context, userID, url string) error
+
 	// DeleteUser deletes a user given their ID
 	DeleteUser(context.Context, string) error
 }

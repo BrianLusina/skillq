@@ -1,8 +1,11 @@
 package user
 
 import (
+	"fmt"
+
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/values"
+	"github.com/pkg/errors"
 )
 
 // User structure represents a user entity in the system
@@ -24,8 +27,8 @@ type User struct {
 	// imageUrl is the URL to the image
 	imageUrl string
 
-	// skills is the list of skills this user has
-	skills []string
+	// skillSet is the list of skillSet this user has
+	skillSet map[string]bool
 
 	// jobTitle is the user's job title
 	jobTitle string
@@ -65,13 +68,23 @@ func New(params UserParams) (User, error) {
 		return User{}, err
 	}
 
+	skillSet := map[string]bool{}
+
+	skills := params.Skills
+	for _, skill := range skills {
+		_, ok := skillSet[skill]
+		if !ok {
+			skillSet[skill] = true
+		}
+	}
+
 	return User{
 		Entity:         entity,
 		name:           params.Name,
 		email:          *email,
 		imageData:      params.ImageData,
 		imageUrl:       params.ImageUrl,
-		skills:         params.Skills,
+		skillSet:       skillSet,
 		jobTitle:       params.JobTitle,
 		hashedPassword: params.Password,
 	}, nil
@@ -80,6 +93,15 @@ func New(params UserParams) (User, error) {
 // Name returns the user's name
 func (u *User) Name() string {
 	return u.name
+}
+
+// SetName returns the user's name
+func (u *User) SetName(name string) (*User, error) {
+	if name == "" {
+		return nil, fmt.Errorf("invalid name %s provided", name)
+	}
+	u.name = name
+	return u, nil
 }
 
 // Password retrieves the hashed user password
@@ -92,6 +114,16 @@ func (u *User) Email() string {
 	return u.email.Get()
 }
 
+// SetEmail updates the user's email address
+func (u *User) SetEmail(email string) (*User, error) {
+	err := u.email.Set(email)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid email %s provided", email)
+	}
+
+	return u, nil
+}
+
 // ImageUrl returns the user's image URL
 func (u *User) ImageData() []byte {
 	return u.imageData
@@ -101,9 +133,39 @@ func (u *User) ImageUrl() string {
 	return u.imageUrl
 }
 
+func (u *User) SetImageUrl(url string) *User {
+	u.imageUrl = url
+	return u
+}
+
+// WithImage updates the image URL
+func (u User) WithImage(imageUrl string) User {
+	u.imageUrl = imageUrl
+	return u
+}
+
 // Skills is a list of all the skills a user has
 func (u *User) Skills() []string {
-	return u.skills
+	skills := []string{}
+	for skill := range u.skillSet {
+		skills = append(skills, skill)
+	}
+	return skills
+}
+
+// SetSkill
+func (u *User) SetSkills(skills []string) *User {
+	currentSkills := u.skillSet
+	for _, skill := range skills {
+		_, ok := currentSkills[skill]
+		if !ok {
+			currentSkills[skill] = true
+		}
+	}
+
+	u.skillSet = currentSkills
+
+	return u
 }
 
 // JobTitle is the user's job title
@@ -111,8 +173,11 @@ func (u *User) JobTitle() string {
 	return u.jobTitle
 }
 
-// WithImage updates the image URL
-func (u User) WithImage(imageUrl string) User {
-	u.imageUrl = imageUrl
-	return u
+// SetJobTitle sets the job title and returns a copy of the user
+func (u *User) SetJobTitle(title string) (*User, error) {
+	if title != "" {
+		u.jobTitle = title
+		return u, nil
+	}
+	return u, fmt.Errorf("invalid job title provided: %s", title)
 }

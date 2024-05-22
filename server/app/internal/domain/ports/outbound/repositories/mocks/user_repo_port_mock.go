@@ -115,3 +115,18 @@ func (mr *MockUserRepoPortMockRecorder) GetUserByUUID(arg0, arg1 any) *gomock.Ca
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUUID", reflect.TypeOf((*MockUserRepoPort)(nil).GetUserByUUID), arg0, arg1)
 }
+
+// UpdateUser mocks base method.
+func (m *MockUserRepoPort) UpdateUser(arg0 context.Context, arg1 user.User) (*user.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUser", arg0, arg1)
+	ret0, _ := ret[0].(*user.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateUser indicates an expected call of UpdateUser.
+func (mr *MockUserRepoPortMockRecorder) UpdateUser(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserRepoPort)(nil).UpdateUser), arg0, arg1)
+}
