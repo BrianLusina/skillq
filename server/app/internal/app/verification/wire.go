@@ -1,4 +1,4 @@
-package userapp
+package verificationapp
 
 import (
 	"github.com/BrianLusina/skillq/server/app/di"
@@ -8,26 +8,19 @@ import (
 	"github.com/google/wire"
 )
 
-// InitApp initializes the user application
-func InitApp(
+func InitializeUserVerificationApp(
 	mongodbConfig mongodb.MongoDBConfig,
 	amqpConfig amqp.Config,
 	minioConfig minio.Config,
-) (*UserApp, error) {
+) (*UserVerificationApp, func(), error) {
 	panic(wire.Build(
-		New,
+		NewUserVerificationApp,
 		di.LoggerSet,
-		di.ProvideUserMongoDbClient,
-		di.UserRepositoryAdapterSet,
+		di.UserVerificationRepositoryAdapterSet,
+		di.ProvideUserVerificationMongoDbClient,
 		di.AmqpClientSet,
 		di.AmqpEventPublisherSet,
-		di.StorageMinioClientSet,
-		di.UserServiceSet,
-		di.ProvideUserVerificationMongoDbClient,
-		di.UserVerificationRepositoryAdapterSet,
 		di.UserVerificationServiceSet,
-		di.ProvideEmailVerificationSentEventHandler,
-		di.ProvideEmailVerificationStartedEventHandler,
-		di.ProvideStoreImageTaskHandler,
+		di.UserServiceSet,
 	))
 }

@@ -3,6 +3,7 @@ package di
 import (
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/database/repositories/userrepo"
+	userverificationrepo "github.com/BrianLusina/skillq/server/app/internal/database/repositories/userverification"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/services/usersvc"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
@@ -27,11 +28,12 @@ var UserVerificationMongoDbClient = wire.NewSet(mongodb.New[models.UserVerificat
 
 func ProvideUserVerificationMongoDbClient(cfg mongodb.MongoDBConfig) mongodb.MongoDBClient[models.UserVerificationModel] {
 	log := logger.New()
-	userMongoDbClient, err := mongodb.New[models.UserVerificationModel](cfg, log)
+	userVerificationMongoDbClient, err := mongodb.New[models.UserVerificationModel](cfg, log)
 	if err != nil {
 		panic(err)
 	}
-	return userMongoDbClient
+	return userVerificationMongoDbClient
 }
 
-var UserVerificationRepositoryAdapterSet = wire.NewSet(userrepo.NewVerification)
+var UserVerificationServiceSet = wire.NewSet(usersvc.NewVerification)
+var UserVerificationRepositoryAdapterSet = wire.NewSet(userverificationrepo.New)

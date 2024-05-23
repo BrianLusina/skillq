@@ -44,10 +44,10 @@ var _ = Describe("User Service", func() {
 		mockStoreImageTaskPublisher = mockamqppublisher.NewMockAmqpEventPublisher(mockCtrl)
 		mockStorageClient = mockstorageclient.NewMockStorageClient(mockCtrl)
 		userSvc = userService{
-			userRepo:                            mockUserRepo,
-			userEmailVerificationEventPublisher: mockUserEmailVerificationEventPublisher,
-			storeImageTaskPublisher:             mockStoreImageTaskPublisher,
-			storageClient:                       mockStorageClient,
+			userRepo:                mockUserRepo,
+			messagePublisher:        mockUserEmailVerificationEventPublisher,
+			storeImageTaskPublisher: mockStoreImageTaskPublisher,
+			storageClient:           mockStorageClient,
 		}
 
 		assert.NotNil(t, userSvc)

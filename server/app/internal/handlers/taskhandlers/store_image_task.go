@@ -15,25 +15,23 @@ import (
 )
 
 type storeUserImageTaskHandler struct {
-	storageClient                   storage.StorageClient
-	userRepo                        repositories.UserRepoPort
-	emailVerificationEventPublisher amqppublisher.AmqpEventPublisher
-	logger                          logger.Logger
+	storageClient storage.StorageClient
+	userRepo      repositories.UserRepoPort
+	logger        logger.Logger
 }
 
 var _ handlers.EventHandler[tasks.StoreUserImage] = (*storeUserImageTaskHandler)(nil)
 
-func NewStoreImageTasksHandler(
+func NewStoreImageTaskHandler(
 	storageClient storage.StorageClient,
 	userRepo repositories.UserRepoPort,
 	messagePublisher amqppublisher.AmqpEventPublisher,
 	logger logger.Logger,
 ) handlers.EventHandler[tasks.StoreUserImage] {
 	return &storeUserImageTaskHandler{
-		storageClient:                   storageClient,
-		userRepo:                        userRepo,
-		emailVerificationEventPublisher: messagePublisher,
-		logger:                          logger,
+		storageClient: storageClient,
+		userRepo:      userRepo,
+		logger:        logger,
 	}
 }
 

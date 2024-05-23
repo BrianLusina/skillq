@@ -23,10 +23,9 @@ import (
 
 // userService is the structure for the business logic handling user management
 type userService struct {
-	userRepo                            repositories.UserRepoPort
-	userEmailVerificationEventPublisher amqppublisher.AmqpEventPublisher
-	storeImageTaskPublisher             amqppublisher.AmqpEventPublisher
-	storageClient                       storage.StorageClient
+	userRepo         repositories.UserRepoPort
+	messagePublisher amqppublisher.AmqpEventPublisher
+	storageClient    storage.StorageClient
 }
 
 var _ inbound.UserService = (*userService)(nil)
@@ -34,16 +33,13 @@ var _ inbound.UserService = (*userService)(nil)
 // New creates a new user service implementation of the user use case
 func New(
 	userRepo repositories.UserRepoPort,
-	userVerificationRepo repositories.UserVerificationRepoPort,
-	userEmailVerificationEventPublisher amqppublisher.AmqpEventPublisher,
-	storeImageTaskPublisher amqppublisher.AmqpEventPublisher,
+	messagePublisher amqppublisher.AmqpEventPublisher,
 	storageClient storage.StorageClient,
 ) inbound.UserService {
 	return &userService{
-		userRepo:                            userRepo,
-		userEmailVerificationEventPublisher: userEmailVerificationEventPublisher,
-		storeImageTaskPublisher:             storeImageTaskPublisher,
-		storageClient:                       storageClient,
+		userRepo:         userRepo,
+		messagePublisher: messagePublisher,
+		storageClient:    storageClient,
 	}
 }
 
@@ -96,7 +92,7 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 	}
 
 	// publish event
-	if err := svc.userEmailVerificationEventPublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
+	if err := svc.messagePublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
 		return nil, errors.Wrapf(err, "failed to publish user email verification event")
 	}
 
@@ -113,7 +109,7 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 	}
 
 	// publish store image task
-	if err := svc.storeImageTaskPublisher.Publish(ctx, taskBytes, "text/plain"); err != nil {
+	if err := svc.messagePublisher.Publish(ctx, taskBytes, "text/plain"); err != nil {
 		return nil, errors.Wrapf(err, "failed to publish store user image task")
 	}
 

@@ -9,7 +9,7 @@ package userapp
 import (
 	"github.com/BrianLusina/skillq/server/app/di"
 	"github.com/BrianLusina/skillq/server/app/internal/database/repositories/userrepo"
-	userverificationrepo "github.com/BrianLusina/skillq/server/app/internal/database/repositories/userverification"
+	"github.com/BrianLusina/skillq/server/app/internal/database/repositories/userverification"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/services/usersvc"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
@@ -20,27 +20,30 @@ import (
 
 // Injectors from wire.go:
 
-// InitializeUserApp initializes the user application
-func InitializeUserApp(mongodbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) (*UserApp, func(), error) {
+// InitApp initializes the user application
+func InitApp(mongodbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) (*UserApp, error) {
 	loggerLogger := logger.New()
 	mongoDBClient := di.ProvideUserMongoDbClient(mongodbConfig)
-	mongodbMongoDBClient := di.ProvideUserVerificationMongoDbClient(mongodbConfig)
 	amqpClient, err := amqp.NewAmqpClient(amqpConfig, loggerLogger)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	amqpEventPublisher, err := amqppublisher.NewPublisher(amqpClient, loggerLogger)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	storageClient, err := minio.NewClient(minioConfig, loggerLogger)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	userRepoPort := userrepo.New(mongoDBClient)
+	userService := usersvc.New(userRepoPort, amqpEventPublisher, storageClient)
+	mongodbMongoDBClient := di.ProvideUserVerificationMongoDbClient(mongodbConfig)
 	userVerificationRepoPort := userverificationrepo.New(mongodbMongoDBClient)
-	userUseCase := usersvc.New(userRepoPort, userVerificationRepoPort, amqpEventPublisher, storageClient)
-	userApp := New(mongodbConfig, amqpConfig, minioConfig, loggerLogger, mongoDBClient, mongodbMongoDBClient, amqpClient, amqpEventPublisher, storageClient, userRepoPort, userVerificationRepoPort, userUseCase)
-	return userApp, func() {
-	}, nil
+	userVerificationService := usersvc.NewVerification(userService, userVerificationRepoPort, amqpEventPublisher)
+	eventHandler := di.ProvideEmailVerificationSentEventHandler(userVerificationService, amqpEventPublisher)
+	handlersEventHandler := di.ProvideEmailVerificationStartedEventHandler(userVerificationService, amqpEventPublisher)
+	eventHandler2 := di.ProvideStoreImageTaskHandler(storageClient, userRepoPort, amqpEventPublisher)
+	userApp := New(mongodbConfig, amqpConfig, minioConfig, loggerLogger, mongoDBClient, amqpClient, amqpEventPublisher, storageClient, userRepoPort, userService, eventHandler, handlersEventHandler, eventHandler2)
+	return userApp, nil
 }
