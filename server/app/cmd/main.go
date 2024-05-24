@@ -11,8 +11,10 @@ import (
 	userv1 "github.com/BrianLusina/skillq/server/app/api/rest/routes/users/v1"
 	"github.com/BrianLusina/skillq/server/app/cmd/config"
 	userapp "github.com/BrianLusina/skillq/server/app/internal/app/user"
+	verificationapp "github.com/BrianLusina/skillq/server/app/internal/app/verification"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+	amqpconsumer "github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
@@ -53,7 +55,8 @@ func main() {
 	// middleware
 	app.Use(cors.New())
 
-	cleanup := prepareApp(ctx, cancel, app, cfg)
+	// prepare and setup app
+	prepareApp(ctx, cancel, app, cfg, appLogger)
 
 	// Start the server
 	err = app.Listen(fmt.Sprintf(":%d", cfg.HTTP.Port))
@@ -64,15 +67,13 @@ func main() {
 
 	select {
 	case v := <-quit:
-		cleanup()
 		appLogger.Info("signal.Notify", v)
 	case done := <-ctx.Done():
-		cleanup()
 		appLogger.Info("ctx.Done", "app done", done)
 	}
 }
 
-func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cfg *config.Config) func() {
+func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cfg *config.Config, appLogger logger.Logger) {
 	// configuration
 	mongoDbConfig := mongodb.MongoDBConfig{
 		Client: mongodb.ClientOptions{
@@ -95,15 +96,13 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 		},
 	}
 
-	// userVerificationMongodbConfig := mongodb.MongoDBConfig{
-	// 	Client: mongoDbConfig.Client,
-	// 	DBConfig: mongodb.DatabaseConfig{
-	// 		DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
-	// 		CollectionName: cfg.MongoDB.Collections["userVerification"].Name,
-	// 	},
-	// }
-
-	// collections := cfg.MongoDB.Collections
+	userVerificationMongodbConfig := mongodb.MongoDBConfig{
+		Client: mongoDbConfig.Client,
+		DBConfig: mongodb.DatabaseConfig{
+			DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
+			CollectionName: "userVerification",
+		},
+	}
 
 	amqpConfig := amqp.Config{
 		Username: cfg.RabbitMQ.Username,
@@ -120,19 +119,16 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 		Token:           cfg.MinioConfig.Token,
 	}
 
-	userApp, userAppCleanup := prepareUserApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig)
-	appLogger := logger.New()
+	userApp := prepareUserApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig)
+	_ = prepareUserVerificationApp(ctx, cancel, userVerificationMongodbConfig, amqpConfig, minioConfig)
 
 	// routing
 	userApi := userv1.NewUserApi(userApp.UserSvc, appLogger)
-
 	userApi.RegisterHandlers(app)
-
-	return userAppCleanup
 }
 
-func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) (*userapp.UserApp, func()) {
-	userApp, cleanup, err := userapp.InitializeUserApp(mongoDbConfig, amqpConfig, minioConfig)
+func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) *userapp.UserApp {
+	userApp, err := userapp.InitApp(mongoDbConfig, amqpConfig, minioConfig)
 	if err != nil {
 		slog.Error("failed init user app", err)
 		cancel()
@@ -146,21 +142,55 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 		amqppublisher.MessageTypeName("skillq-user"),
 	)
 
-	// a.Consumer.Configure(
-	// 	pkgConsumer.ExchangeName("counter-order-exchange"),
-	// 	pkgConsumer.QueueName("counter-order-queue"),
-	// 	pkgConsumer.BindingKey("counter-order-routing-key"),
-	// 	pkgConsumer.ConsumerTag("counter-order-consumer"),
-	// )
+	userApp.AmqpEventConsumer.Configure(
+		amqpconsumer.ExchangeName("skillq-user-exchange"),
+		amqpconsumer.QueueName("skillq-user-queue"),
+		amqpconsumer.BindingKey("skillq-user-routing-key"),
+		amqpconsumer.ConsumerTag("skillq-user-consumer"),
+	)
 
-	// go func() {
-	// 	err1 := a.Consumer.StartConsumer(a.Worker)
-	// 	if err1 != nil {
-	// 		slog.Error("failed to start Consumer", err1)
-	// 		cancel()
-	// 		<-ctx.Done()
-	// 	}
-	// }()
+	go func() {
+		err1 := userApp.AmqpEventConsumer.StartConsumer(userApp.Worker)
+		if err1 != nil {
+			slog.Error("failed to start user app Consumer", err1)
+			cancel()
+			<-ctx.Done()
+		}
+	}()
 
-	return userApp, cleanup
+	return userApp
+}
+
+func prepareUserVerificationApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) *verificationapp.UserVerificationApp {
+	userVerificationApp, err := verificationapp.InitializeUserVerificationApp(mongoDbConfig, amqpConfig, minioConfig)
+	if err != nil {
+		slog.Error("failed init verification app", err)
+		cancel()
+		<-ctx.Done()
+	}
+
+	// Configure publisher and start workers
+	userVerificationApp.AmqpEventPublisher.Configure(
+		amqppublisher.ExchangeName("skillq-user-verification-exchange"),
+		amqppublisher.BindingKey("skillq-user-verification-routing-key"),
+		amqppublisher.MessageTypeName("skillq-user-verification"),
+	)
+
+	userVerificationApp.AmqpEventConsumer.Configure(
+		amqpconsumer.ExchangeName("skillq-user-verification-exchange"),
+		amqpconsumer.QueueName("skillq-user-verification-queue"),
+		amqpconsumer.BindingKey("skillq-user-verification-key"),
+		amqpconsumer.ConsumerTag("skillq-user-verification-consumer"),
+	)
+
+	go func() {
+		err1 := userVerificationApp.AmqpEventConsumer.StartConsumer(userVerificationApp.Worker)
+		if err1 != nil {
+			slog.Error("failed to start verification Consumer", err1)
+			cancel()
+			<-ctx.Done()
+		}
+	}()
+
+	return userVerificationApp
 }

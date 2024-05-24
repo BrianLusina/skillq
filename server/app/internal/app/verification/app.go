@@ -1,15 +1,23 @@
 package verificationapp
 
 import (
+	"context"
+	"encoding/json"
+
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
+	"github.com/BrianLusina/skillq/server/app/internal/handlers"
+	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+	amqpconsumer "github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
+
+	rabbitmq "github.com/rabbitmq/amqp091-go"
 )
 
 type (
@@ -22,10 +30,13 @@ type (
 
 		AmqpClient         *amqp.AmqpClient
 		AmqpEventPublisher amqppublisher.AmqpEventPublisher
+		AmqpEventConsumer  amqpconsumer.AmqpEventConsumer
 		StorageClient      storage.StorageClient
 
 		UserVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel]
 		UserVerificationRepo          repositories.UserVerificationRepoPort
+
+		StoreImageTaskHandler handlers.EventHandler[tasks.StoreUserImage]
 
 		UserVerificationSvc inbound.UserVerificationService
 	}
@@ -40,6 +51,8 @@ func NewUserVerificationApp(
 	usersMongoDbClient mongodb.MongoDBClient[models.UserModel],
 	amqpClient *amqp.AmqpClient,
 	amqpEventPublisher amqppublisher.AmqpEventPublisher,
+	amqpEventConsumer amqpconsumer.AmqpEventConsumer,
+	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImage],
 
 	userVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel],
 	userVerificationRepo repositories.UserVerificationRepoPort,
@@ -52,8 +65,47 @@ func NewUserVerificationApp(
 		Logger:                        logger,
 		AmqpClient:                    amqpClient,
 		AmqpEventPublisher:            amqpEventPublisher,
+		AmqpEventConsumer:             amqpEventConsumer,
 		UserVerificationRepo:          userVerificationRepo,
 		UserVerificationMongoDbClient: userVerificationMongoDbClient,
 		UserVerificationSvc:           userVerificationService,
+		StoreImageTaskHandler:         storeImageTaskHandler,
 	}
+}
+
+func (app *UserVerificationApp) Worker(ctx context.Context, messages <-chan any) {
+	for message := range messages {
+		delivery := message.(rabbitmq.Delivery)
+		app.Logger.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
+		app.Logger.Info("received", "delivery_type", delivery.Type)
+
+		switch delivery.Type {
+		case "store-user-image":
+			var payload tasks.StoreUserImage
+
+			err := json.Unmarshal(delivery.Body, &payload)
+			if err != nil {
+				app.Logger.Error("failed to Unmarshal message", err)
+			}
+
+			err = app.StoreImageTaskHandler.Handle(ctx, &payload)
+
+			if err != nil {
+				if err = delivery.Reject(false); err != nil {
+					app.Logger.Error("failed to delivery.Reject", err)
+				}
+
+				app.Logger.Error("failed to process delivery", err)
+			} else {
+				err = delivery.Ack(false)
+				if err != nil {
+					app.Logger.Error("failed to acknowledge delivery", err)
+				}
+			}
+
+		default:
+			app.Logger.Info("default")
+		}
+	}
+
 }

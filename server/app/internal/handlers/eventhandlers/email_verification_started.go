@@ -34,7 +34,7 @@ func NewEmailVerificationStartedEventHandler(
 	}
 }
 
-func (h *emailVerificationStartedEventHandler) Handle(ctx context.Context, event events.EmailVerificationStarted) error {
+func (h *emailVerificationStartedEventHandler) Handle(ctx context.Context, event *events.EmailVerificationStarted) error {
 	h.logger.Infof("Received event email verification started, %v", event)
 
 	uuid, email, name := event.UserUUID, event.Email, event.Name

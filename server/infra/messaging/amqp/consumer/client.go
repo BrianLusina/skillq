@@ -95,7 +95,7 @@ func (c *amqpConsumerClient) Consume(ctx context.Context, queue string) error {
 }
 
 // StartConsumer starts a new consumer worker. Used for async workflows
-func (c *amqpConsumerClient) StartConsumer(fn messaging.Worker[any]) error {
+func (c *amqpConsumerClient) StartConsumer(fn func(ctx context.Context, message <-chan any)) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

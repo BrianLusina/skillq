@@ -1,3 +1,6 @@
+//go:build wireinject
+// +build wireinject
+
 package verificationapp
 
 import (
@@ -12,7 +15,7 @@ func InitializeUserVerificationApp(
 	mongodbConfig mongodb.MongoDBConfig,
 	amqpConfig amqp.Config,
 	minioConfig minio.Config,
-) (*UserVerificationApp, func(), error) {
+) (*UserVerificationApp, error) {
 	panic(wire.Build(
 		NewUserVerificationApp,
 		di.LoggerSet,
@@ -21,6 +24,10 @@ func InitializeUserVerificationApp(
 		di.AmqpClientSet,
 		di.AmqpEventPublisherSet,
 		di.UserVerificationServiceSet,
+		di.ProvideUserMongoDbClient,
+		di.UserRepositoryAdapterSet,
+		di.StorageMinioClientSet,
+		di.ProvideStoreImageTaskHandler,
 		di.UserServiceSet,
 	))
 }

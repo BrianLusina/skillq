@@ -13,7 +13,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	messaging "github.com/BrianLusina/skillq/server/infra/messaging"
 	amqpconsumer "github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -86,7 +85,7 @@ func (mr *MockAmqpEventConsumerMockRecorder) Consume(ctx, queue any) *gomock.Cal
 }
 
 // StartConsumer mocks base method.
-func (m *MockAmqpEventConsumer) StartConsumer(fn messaging.Worker[any]) error {
+func (m *MockAmqpEventConsumer) StartConsumer(fn func(context.Context, any)) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StartConsumer", fn)
 	ret0, _ := ret[0].(error)
