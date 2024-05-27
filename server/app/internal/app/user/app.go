@@ -44,7 +44,7 @@ type (
 
 		EmailVerificationSentHandler    handlers.EventHandler[events.EmailVerificationSent]
 		EmailVerificationStartedHandler handlers.EventHandler[events.EmailVerificationStarted]
-		StoreImageTaskHandler           handlers.EventHandler[tasks.StoreUserImage]
+		StoreImageTaskHandler           handlers.EventHandler[tasks.StoreUserImageTask]
 	}
 )
 
@@ -65,7 +65,7 @@ func New(
 	emailVerificationSentHandler handlers.EventHandler[events.EmailVerificationSent],
 	emailVerificationStartedHandler handlers.EventHandler[events.EmailVerificationStarted],
 
-	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImage],
+	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImageTask],
 ) *UserApp {
 	return &UserApp{
 		MongoDbConfig:      mongodbConfig,
@@ -86,17 +86,15 @@ func New(
 	}
 }
 
-func (app *UserApp) Worker(ctx context.Context, messages <-chan any) {
+func (app *UserApp) Worker(ctx context.Context, messages <-chan rabbitmq.Delivery) {
 	for message := range messages {
-		delivery := message.(rabbitmq.Delivery)
-		app.Logger.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
-		app.Logger.Info("received", "delivery_type", delivery.Type)
+		app.Logger.Infof("Processing message with Tag: %s & Type: %s", message.DeliveryTag, message.Type)
 
-		switch delivery.Type {
+		switch message.Type {
 		case "email-verification-started":
 			var payload events.EmailVerificationStarted
 
-			err := json.Unmarshal(delivery.Body, &payload)
+			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {
 				app.Logger.Error("failed to Unmarshal message", err)
 			}
@@ -104,13 +102,13 @@ func (app *UserApp) Worker(ctx context.Context, messages <-chan any) {
 			err = app.EmailVerificationStartedHandler.Handle(ctx, &payload)
 
 			if err != nil {
-				if err = delivery.Reject(false); err != nil {
+				if err = message.Reject(false); err != nil {
 					app.Logger.Error("failed to delivery.Reject", err)
 				}
 
 				app.Logger.Error("failed to process delivery", err)
 			} else {
-				err = delivery.Ack(false)
+				err = message.Ack(false)
 				if err != nil {
 					app.Logger.Error("failed to acknowledge delivery", err)
 				}
@@ -119,7 +117,7 @@ func (app *UserApp) Worker(ctx context.Context, messages <-chan any) {
 		case "email-verification-sent":
 			var payload events.EmailVerificationSent
 
-			err := json.Unmarshal(delivery.Body, &payload)
+			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {
 				slog.Error("failed to Unmarshal message", err)
 			}
@@ -127,13 +125,13 @@ func (app *UserApp) Worker(ctx context.Context, messages <-chan any) {
 			err = app.EmailVerificationSentHandler.Handle(ctx, &payload)
 
 			if err != nil {
-				if err = delivery.Reject(false); err != nil {
+				if err = message.Reject(false); err != nil {
 					slog.Error("failed to delivery.Reject", err)
 				}
 
 				slog.Error("failed to process delivery", err)
 			} else {
-				err = delivery.Ack(false)
+				err = message.Ack(false)
 				if err != nil {
 					slog.Error("failed to acknowledge delivery", err)
 				}

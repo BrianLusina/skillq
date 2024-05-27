@@ -36,7 +36,7 @@ type (
 		UserVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel]
 		UserVerificationRepo          repositories.UserVerificationRepoPort
 
-		StoreImageTaskHandler handlers.EventHandler[tasks.StoreUserImage]
+		StoreImageTaskHandler handlers.EventHandler[tasks.StoreUserImageTask]
 
 		UserVerificationSvc inbound.UserVerificationService
 	}
@@ -52,7 +52,7 @@ func NewUserVerificationApp(
 	amqpClient *amqp.AmqpClient,
 	amqpEventPublisher amqppublisher.AmqpEventPublisher,
 	amqpEventConsumer amqpconsumer.AmqpEventConsumer,
-	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImage],
+	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImageTask],
 
 	userVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel],
 	userVerificationRepo repositories.UserVerificationRepoPort,
@@ -73,17 +73,16 @@ func NewUserVerificationApp(
 	}
 }
 
-func (app *UserVerificationApp) Worker(ctx context.Context, messages <-chan any) {
+func (app *UserVerificationApp) Worker(ctx context.Context, messages <-chan rabbitmq.Delivery) {
 	for message := range messages {
-		delivery := message.(rabbitmq.Delivery)
-		app.Logger.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
-		app.Logger.Info("received", "delivery_type", delivery.Type)
+		app.Logger.Info("processDeliveries", "delivery_tag", message.DeliveryTag)
+		app.Logger.Info("received", "delivery_type", message.Type)
 
-		switch delivery.Type {
+		switch message.Type {
 		case "store-user-image":
-			var payload tasks.StoreUserImage
+			var payload tasks.StoreUserImageTask
 
-			err := json.Unmarshal(delivery.Body, &payload)
+			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {
 				app.Logger.Error("failed to Unmarshal message", err)
 			}
@@ -91,13 +90,13 @@ func (app *UserVerificationApp) Worker(ctx context.Context, messages <-chan any)
 			err = app.StoreImageTaskHandler.Handle(ctx, &payload)
 
 			if err != nil {
-				if err = delivery.Reject(false); err != nil {
+				if err = message.Reject(false); err != nil {
 					app.Logger.Error("failed to delivery.Reject", err)
 				}
 
 				app.Logger.Error("failed to process delivery", err)
 			} else {
-				err = delivery.Ack(false)
+				err = message.Ack(false)
 				if err != nil {
 					app.Logger.Error("failed to acknowledge delivery", err)
 				}

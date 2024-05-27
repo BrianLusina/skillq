@@ -19,13 +19,13 @@ type amqpConsumerClient struct {
 	bindingKey     string
 	consumerTag    string
 	workerPoolSize int
-	client         amqp.AmqpClient
+	client         *amqp.AmqpClient
 	logger         logger.Logger
 	handlers       map[string]func(payload []byte) error
 }
 
 // NewConsumer creates a new AMQP consumer
-func NewConsumer[T rabbitmq.Delivery](client amqp.AmqpClient, log logger.Logger) (AmqpEventConsumer, error) {
+func NewConsumer(client *amqp.AmqpClient, log logger.Logger) (AmqpEventConsumer, error) {
 	handlers := make(map[string]func(payload []byte) error)
 	sub := &amqpConsumerClient{
 		client:         client,
@@ -95,7 +95,7 @@ func (c *amqpConsumerClient) Consume(ctx context.Context, queue string) error {
 }
 
 // StartConsumer starts a new consumer worker. Used for async workflows
-func (c *amqpConsumerClient) StartConsumer(fn func(ctx context.Context, message <-chan any)) error {
+func (c *amqpConsumerClient) StartConsumer(fn func(ctx context.Context, message <-chan rabbitmq.Delivery)) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

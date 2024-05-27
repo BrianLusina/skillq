@@ -81,9 +81,15 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
+	// TODO: publish message to different queues. Right now publishing is done on the same queue for
+	// different types of messages. The publish method should have an extra field for the message type
+	// that is optional, if set, it is used, if not set, then the default message type name is used
+	// which could fall into a queue that has no recipient attached to it.
+
 	event := events.EmailVerificationStarted{
 		UserUUID: createdUser.UUID(),
 		Email:    createdUser.Email(),
+		Name:     createdUser.Name(),
 	}
 
 	eventBytes, err := utils.MessageDataToBytes(event)
@@ -96,7 +102,7 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		return nil, errors.Wrapf(err, "failed to publish user email verification event")
 	}
 
-	task := tasks.StoreUserImage{
+	task := tasks.StoreUserImageTask{
 		ContentType: request.Image.Type,
 		Content:     request.Image.Content,
 		Name:        fmt.Sprintf("%s-image", createdUser.UUID()),

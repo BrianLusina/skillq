@@ -17,7 +17,7 @@ func ProvideStoreImageTaskHandler(
 	storageClient storage.StorageClient,
 	userRepo repositories.UserRepoPort,
 	publisher amqppublisher.AmqpEventPublisher,
-) handlers.EventHandler[tasks.StoreUserImage] {
+) handlers.EventHandler[tasks.StoreUserImageTask] {
 	log := logger.New()
 	storeImageTaskHandler := taskhandlers.NewStoreImageTaskHandler(storageClient, userRepo, publisher, log)
 

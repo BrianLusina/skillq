@@ -13,6 +13,7 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/services/usersvc"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+	"github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
@@ -32,6 +33,10 @@ func InitApp(mongodbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioC
 	if err != nil {
 		return nil, err
 	}
+	amqpEventConsumer, err := amqpconsumer.NewConsumer(amqpClient, loggerLogger)
+	if err != nil {
+		return nil, err
+	}
 	storageClient, err := minio.NewClient(minioConfig, loggerLogger)
 	if err != nil {
 		return nil, err
@@ -44,6 +49,6 @@ func InitApp(mongodbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioC
 	eventHandler := di.ProvideEmailVerificationSentEventHandler(userVerificationService, amqpEventPublisher)
 	handlersEventHandler := di.ProvideEmailVerificationStartedEventHandler(userVerificationService, amqpEventPublisher)
 	eventHandler2 := di.ProvideStoreImageTaskHandler(storageClient, userRepoPort, amqpEventPublisher)
-	userApp := New(mongodbConfig, amqpConfig, minioConfig, loggerLogger, mongoDBClient, amqpClient, amqpEventPublisher, storageClient, userRepoPort, userService, eventHandler, handlersEventHandler, eventHandler2)
+	userApp := New(mongodbConfig, amqpConfig, minioConfig, loggerLogger, mongoDBClient, amqpClient, amqpEventPublisher, amqpEventConsumer, storageClient, userRepoPort, userService, eventHandler, handlersEventHandler, eventHandler2)
 	return userApp, nil
 }

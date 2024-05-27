@@ -28,6 +28,7 @@ func InitApp(
 		di.UserServiceSet,
 		di.ProvideUserVerificationMongoDbClient,
 		di.UserVerificationRepositoryAdapterSet,
+		di.AmqpEventConsumerSet,
 		di.UserVerificationServiceSet,
 		di.ProvideEmailVerificationSentEventHandler,
 		di.ProvideEmailVerificationStartedEventHandler,

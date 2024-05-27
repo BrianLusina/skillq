@@ -13,6 +13,10 @@ type EmailVerificationStarted struct {
 	Email    string  `json:"email"`
 }
 
+func (e *EmailVerificationStarted) Identity() string {
+	return "EmailVerificationStarted"
+}
+
 // EmailVerificationSent is an event that is triggered to signal that an email verification has been sent
 type EmailVerificationSent struct {
 	sharedkernel.DomainEvent
@@ -20,4 +24,8 @@ type EmailVerificationSent struct {
 	Email    string  `json:"email"`
 	Name     string  `json:"name"`
 	Code     string  `json:"code"`
+}
+
+func (e *EmailVerificationSent) Identity() string {
+	return "EmailVerificationSent"
 }

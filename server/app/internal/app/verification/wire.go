@@ -23,6 +23,7 @@ func InitializeUserVerificationApp(
 		di.ProvideUserVerificationMongoDbClient,
 		di.AmqpClientSet,
 		di.AmqpEventPublisherSet,
+		di.AmqpEventConsumerSet,
 		di.UserVerificationServiceSet,
 		di.ProvideUserMongoDbClient,
 		di.UserRepositoryAdapterSet,

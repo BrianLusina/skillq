@@ -139,7 +139,7 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 	userApp.AmqpEventPublisher.Configure(
 		amqppublisher.ExchangeName("skillq-user-exchange"),
 		amqppublisher.BindingKey("skillq-user-routing-key"),
-		amqppublisher.MessageTypeName("skillq-user"),
+		amqppublisher.MessageTypeName("email-verification-started"),
 	)
 
 	userApp.AmqpEventConsumer.Configure(

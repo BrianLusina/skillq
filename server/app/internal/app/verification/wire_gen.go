@@ -13,6 +13,7 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/services/usersvc"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+	"github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
@@ -31,6 +32,10 @@ func InitializeUserVerificationApp(mongodbConfig mongodb.MongoDBConfig, amqpConf
 	if err != nil {
 		return nil, err
 	}
+	amqpEventConsumer, err := amqpconsumer.NewConsumer(amqpClient, loggerLogger)
+	if err != nil {
+		return nil, err
+	}
 	storageClient, err := minio.NewClient(minioConfig, loggerLogger)
 	if err != nil {
 		return nil, err
@@ -41,6 +46,6 @@ func InitializeUserVerificationApp(mongodbConfig mongodb.MongoDBConfig, amqpConf
 	userVerificationRepoPort := userverificationrepo.New(mongodbMongoDBClient)
 	userService := usersvc.New(userRepoPort, amqpEventPublisher, storageClient)
 	userVerificationService := usersvc.NewVerification(userService, userVerificationRepoPort, amqpEventPublisher)
-	userVerificationApp := NewUserVerificationApp(mongodbConfig, amqpConfig, minioConfig, loggerLogger, mongoDBClient, amqpClient, amqpEventPublisher, eventHandler, mongodbMongoDBClient, userVerificationRepoPort, userVerificationService)
+	userVerificationApp := NewUserVerificationApp(mongodbConfig, amqpConfig, minioConfig, loggerLogger, mongoDBClient, amqpClient, amqpEventPublisher, amqpEventConsumer, eventHandler, mongodbMongoDBClient, userVerificationRepoPort, userVerificationService)
 	return userVerificationApp, nil
 }
