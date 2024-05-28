@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/BrianLusina/skillq/server/infra/messaging"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/handlers"
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
-	"github.com/BrianLusina/skillq/server/app/pkg/utils"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/pkg/errors"
 )
@@ -53,15 +53,14 @@ func (h *emailVerificationStartedEventHandler) Handle(ctx context.Context, event
 		Code:     verification.Code(),
 	}
 
-	eventBytes, err := utils.MessageDataToBytes(sendEmailEvent)
-	if err != nil {
-		msg := fmt.Sprintf("Failed to parse event %v", sendEmailEvent)
-		h.logger.Errorf(msg)
-		return errors.Wrapf(err, msg)
+	sendEmailVerificationMessage := messaging.Message{
+		Topic:       sendEmailEvent.Identity(),
+		ContentType: "text/plain",
+		Payload:     sendEmailEvent,
 	}
 
-	if err := h.emailVerificationEventPublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
-		msg := fmt.Sprintf("Failed to publish event %v", sendEmailEvent)
+	if err := h.emailVerificationEventPublisher.Publish(ctx, sendEmailVerificationMessage); err != nil {
+		msg := fmt.Sprintf("Failed to publish event %v", sendEmailVerificationMessage)
 		h.logger.Errorf(msg)
 		return errors.Wrapf(err, "failed to publish user email sent event")
 	}

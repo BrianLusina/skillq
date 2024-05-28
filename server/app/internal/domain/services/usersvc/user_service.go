@@ -11,9 +11,9 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
-	"github.com/BrianLusina/skillq/server/app/pkg/utils"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
+	"github.com/BrianLusina/skillq/server/infra/messaging"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/utils/security"
@@ -81,42 +81,39 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// TODO: publish message to different queues. Right now publishing is done on the same queue for
-	// different types of messages. The publish method should have an extra field for the message type
-	// that is optional, if set, it is used, if not set, then the default message type name is used
-	// which could fall into a queue that has no recipient attached to it.
-
 	event := events.EmailVerificationStarted{
 		UserUUID: createdUser.UUID(),
 		Email:    createdUser.Email(),
 		Name:     createdUser.Name(),
 	}
 
-	eventBytes, err := utils.MessageDataToBytes(event)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse user email verification event")
+	message := messaging.Message{
+		Topic:       event.Identity(),
+		Payload:     event,
+		ContentType: "text/plain",
 	}
 
 	// publish event
-	if err := svc.messagePublisher.Publish(ctx, eventBytes, "text/plain"); err != nil {
-		return nil, errors.Wrapf(err, "failed to publish user email verification event")
+	if err := svc.messagePublisher.Publish(ctx, message); err != nil {
+		return nil, errors.Wrapf(err, "failed to publish user email verification event: %v", message)
 	}
 
-	task := tasks.StoreUserImageTask{
+	storeUserImageTask := tasks.StoreUserImageTask{
 		ContentType: request.Image.Type,
 		Content:     request.Image.Content,
 		Name:        fmt.Sprintf("%s-image", createdUser.UUID()),
 		Bucket:      fmt.Sprintf("%s-documents", createdUser.UUID()),
 	}
 
-	taskBytes, err := utils.MessageDataToBytes(task)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse store user image task")
+	storeImageMessage := messaging.Message{
+		Topic:       storeUserImageTask.Identity(),
+		Payload:     storeUserImageTask,
+		ContentType: "text/plain",
 	}
 
 	// publish store image task
-	if err := svc.messagePublisher.Publish(ctx, taskBytes, "text/plain"); err != nil {
-		return nil, errors.Wrapf(err, "failed to publish store user image task")
+	if err := svc.messagePublisher.Publish(ctx, storeImageMessage); err != nil {
+		return nil, errors.Wrapf(err, "failed to publish store user image task: %v", storeImageMessage)
 	}
 
 	// update user image in response

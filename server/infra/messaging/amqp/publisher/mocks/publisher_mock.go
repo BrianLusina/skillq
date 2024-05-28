@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	messaging "github.com/BrianLusina/skillq/server/infra/messaging"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -71,15 +72,15 @@ func (mr *MockAmqpEventPublisherMockRecorder) Configure(arg0 ...any) *gomock.Cal
 }
 
 // Publish mocks base method.
-func (m *MockAmqpEventPublisher) Publish(ctx context.Context, body []byte, contentType string) error {
+func (m *MockAmqpEventPublisher) Publish(ctx context.Context, message messaging.Message) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Publish", ctx, body, contentType)
+	ret := m.ctrl.Call(m, "Publish", ctx, message)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Publish indicates an expected call of Publish.
-func (mr *MockAmqpEventPublisherMockRecorder) Publish(ctx, body, contentType any) *gomock.Call {
+func (mr *MockAmqpEventPublisherMockRecorder) Publish(ctx, message any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockAmqpEventPublisher)(nil).Publish), ctx, body, contentType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockAmqpEventPublisher)(nil).Publish), ctx, message)
 }

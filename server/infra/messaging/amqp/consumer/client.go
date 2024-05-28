@@ -71,7 +71,7 @@ func (c *amqpConsumerClient) Consume(ctx context.Context, queue string) error {
 				c.logger.Errorf("failed to unmarshal message: %v", err)
 				continue
 			}
-			if handler, ok := c.handlers[msg.Task]; ok {
+			if handler, ok := c.handlers[msg.Topic]; ok {
 				err = handler(msg.Payload)
 				if err != nil {
 					c.logger.Errorf("failed to handle message: %v", err)
@@ -83,7 +83,7 @@ func (c *amqpConsumerClient) Consume(ctx context.Context, queue string) error {
 					c.logger.Errorf("failed to acknowledge deliver: %v", err)
 				}
 			} else {
-				c.logger.Warn("task does not exist: %v", msg.Task)
+				c.logger.Warn("task does not exist: %v", msg.Topic)
 				delivery.Nack(false, false)
 			}
 		}

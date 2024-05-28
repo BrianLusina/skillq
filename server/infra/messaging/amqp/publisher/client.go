@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/BrianLusina/skillq/server/infra/logger"
+	"github.com/BrianLusina/skillq/server/infra/messaging"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -35,7 +36,19 @@ func NewPublisher(client *amqp.AmqpClient, log logger.Logger) (AmqpEventPublishe
 }
 
 // Publish publishes a message to a given topic
-func (p *amqpPublisherClient) Publish(ctx context.Context, body []byte, contentType string) error {
+func (p *amqpPublisherClient) Publish(ctx context.Context, message messaging.Message) error {
+	body, err := message.ToBytes()
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse message event")
+	}
+
+	var messageTypeName string
+	if message.Topic == "" {
+		messageTypeName = p.messageTypeName
+	} else {
+		messageTypeName = message.Topic
+	}
+
 	amqpChan, err := p.client.AmqpConn.Channel()
 	if err != nil {
 		p.logger.Errorf("Failed to open channel: %v", err)
@@ -52,12 +65,12 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, body []byte, contentT
 		_publishMandatory,
 		_publishImmediate,
 		rabbitmq.Publishing{
-			ContentType:  contentType,
+			ContentType:  message.ContentType,
 			DeliveryMode: rabbitmq.Persistent,
 			MessageId:    uuid.New().String(),
 			Timestamp:    time.Now(),
 			Body:         body,
-			Type:         p.messageTypeName,
+			Type:         messageTypeName,
 		},
 	)
 	if err != nil {

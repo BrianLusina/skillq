@@ -79,7 +79,7 @@ func (app *UserVerificationApp) Worker(ctx context.Context, messages <-chan rabb
 		app.Logger.Info("received", "delivery_type", message.Type)
 
 		switch message.Type {
-		case "store-user-image":
+		case string(tasks.StoreUserImageTaskName):
 			var payload tasks.StoreUserImageTask
 
 			err := json.Unmarshal(message.Body, &payload)

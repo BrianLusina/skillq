@@ -15,5 +15,5 @@ type StoreUserImageTask struct {
 }
 
 func (e *StoreUserImageTask) Identity() string {
-	return "StoreUserImageTask"
+	return string(StoreUserImageTaskName)
 }

@@ -91,7 +91,7 @@ func (app *UserApp) Worker(ctx context.Context, messages <-chan rabbitmq.Deliver
 		app.Logger.Infof("Processing message with Tag: %s & Type: %s", message.DeliveryTag, message.Type)
 
 		switch message.Type {
-		case "email-verification-started":
+		case string(events.EmailVerificationStartedName):
 			var payload events.EmailVerificationStarted
 
 			err := json.Unmarshal(message.Body, &payload)
@@ -114,7 +114,7 @@ func (app *UserApp) Worker(ctx context.Context, messages <-chan rabbitmq.Deliver
 				}
 			}
 
-		case "email-verification-sent":
+		case string(events.EmailVerificationSentName):
 			var payload events.EmailVerificationSent
 
 			err := json.Unmarshal(message.Body, &payload)

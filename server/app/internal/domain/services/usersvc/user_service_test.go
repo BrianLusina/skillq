@@ -98,7 +98,7 @@ var _ = Describe("User Service", func() {
 				mockUserRepo.EXPECT().GetUserByUUID(ctx, gomock.Any()).Times(0)
 
 				// no message was published
-				mockMessagePublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Times(0)
+				mockMessagePublisher.EXPECT().Publish(ctx, gomock.Any()).Times(0)
 
 				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
 				assert.Nil(t, actualUser)
@@ -145,7 +145,7 @@ var _ = Describe("User Service", func() {
 				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
 
 				// message failed to publish
-				mockMessagePublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(mockPublisherError).Times(1)
+				mockMessagePublisher.EXPECT().Publish(ctx, gomock.Any()).Return(mockPublisherError).Times(1)
 
 				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
 				assert.Nil(t, actualUser)
@@ -193,7 +193,7 @@ var _ = Describe("User Service", func() {
 				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(&createdUser, nil).Times(1)
 
 				// message failed to be published
-				mockMessagePublisher.EXPECT().Publish(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(2)
+				mockMessagePublisher.EXPECT().Publish(ctx, gomock.Any()).Return(nil).Times(2)
 
 				actualUser, actualErr := userSvc.CreateUser(context.Background(), request)
 				assert.NotNil(t, actualUser)
