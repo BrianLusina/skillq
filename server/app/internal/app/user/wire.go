@@ -5,6 +5,7 @@ package userapp
 
 import (
 	"github.com/BrianLusina/skillq/server/app/di"
+	"github.com/BrianLusina/skillq/server/infra/clients/email"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
 	"github.com/BrianLusina/skillq/server/infra/mongodb"
 	"github.com/BrianLusina/skillq/server/infra/storage/minio"
@@ -16,6 +17,7 @@ func InitApp(
 	mongodbConfig mongodb.MongoDBConfig,
 	amqpConfig amqp.Config,
 	minioConfig minio.Config,
+	emailConfig email.EmailClientConfig,
 ) (*UserApp, error) {
 	panic(wire.Build(
 		New,
@@ -30,8 +32,8 @@ func InitApp(
 		di.UserVerificationRepositoryAdapterSet,
 		di.AmqpEventConsumerSet,
 		di.UserVerificationServiceSet,
-		di.ProvideEmailVerificationSentEventHandler,
-		di.ProvideEmailVerificationStartedEventHandler,
+		di.ProvideSendEmailVerificationTaskHandler,
+		di.EmailClientSet,
 		di.ProvideStoreImageTaskHandler,
 	))
 }

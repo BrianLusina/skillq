@@ -3,16 +3,14 @@ package events
 import (
 	sharedkernel "github.com/BrianLusina/skillq/server/domain"
 	"github.com/BrianLusina/skillq/server/domain/id"
-	"github.com/BrianLusina/skillq/server/infra/messaging"
 )
 
 // EmailVerificationStarted is an event that triggers the start of email verification
 type EmailVerificationStarted struct {
 	sharedkernel.DomainEvent
-	Message  messaging.Message `json:"message"`
-	UserUUID id.UUID           `json:"userId"`
-	Name     string            `json:"name"`
-	Email    string            `json:"email"`
+	UserUUID id.UUID `json:"userId"`
+	Name     string  `json:"name"`
+	Email    string  `json:"email"`
 }
 
 func (e *EmailVerificationStarted) Identity() string {

@@ -1,6 +1,7 @@
 package di
 
 import (
+	"github.com/BrianLusina/skillq/server/infra/clients/email"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
 	amqpconsumer "github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
@@ -19,3 +20,5 @@ var AmqpEventConsumerSet = wire.NewSet(amqpconsumer.NewConsumer)
 
 // Storage clients
 var StorageMinioClientSet = wire.NewSet(minio.NewClient)
+
+var EmailClientSet = wire.NewSet(email.New)

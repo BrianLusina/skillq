@@ -17,6 +17,7 @@ type (
 		MongoDB      `yaml:"mongodb"`
 		RabbitMQ     `yaml:"rabbitmq"`
 		MinioConfig  `yaml:"minio"`
+		EmailConfig  `yaml:"email"`
 	}
 
 	MongoDB struct {
@@ -49,6 +50,13 @@ type (
 		SecretAccessKey string `yaml:"secretAccessKey" env:"MINIO_SECRET_ACCESS_KEY"`
 		UseSSL          bool   `yaml:"useSSL" env:"MINIO_USE_SSL"`
 		Token           string `yaml:"token" env:"MINIO_TOKEN"`
+	}
+
+	EmailConfig struct {
+		Host     string `yaml:"host" env:"EMAIL_CLIENT_HOST"`
+		Port     string `yaml:"port" env:"EMAIL_CLIENT_PORT"`
+		Password string `yaml:"password" env:"EMAIL_CLIENT_PASSWORD"`
+		From     string `yaml:"from" env:"EMAIL_CLIENT_FROM"`
 	}
 )
 

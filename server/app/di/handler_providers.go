@@ -4,10 +4,9 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/internal/handlers"
-	"github.com/BrianLusina/skillq/server/app/internal/handlers/eventhandlers"
 	"github.com/BrianLusina/skillq/server/app/internal/handlers/taskhandlers"
-	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
+	"github.com/BrianLusina/skillq/server/infra/clients/email"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/storage"
@@ -24,19 +23,12 @@ func ProvideStoreImageTaskHandler(
 	return storeImageTaskHandler
 }
 
-func ProvideEmailVerificationStartedEventHandler(
+func ProvideSendEmailVerificationTaskHandler(
+	emailClient email.EmailClient,
 	userVerificationSvc inbound.UserVerificationService,
-	messagePublisher amqppublisher.AmqpEventPublisher,
-) handlers.EventHandler[events.EmailVerificationStarted] {
+	userRepo repositories.UserRepoPort,
+) handlers.EventHandler[tasks.SendEmailVerification] {
 	log := logger.New()
-	emailVerificationStartedHandler := eventhandlers.NewEmailVerificationStartedEventHandler(userVerificationSvc, messagePublisher, log)
-	return emailVerificationStartedHandler
-}
-func ProvideEmailVerificationSentEventHandler(
-	userVerificationSvc inbound.UserVerificationService,
-	messagePublisher amqppublisher.AmqpEventPublisher,
-) handlers.EventHandler[events.EmailVerificationSent] {
-	log := logger.New()
-	emailVerificationSentHandler := eventhandlers.NewEmailVerificationSentEventHandler(userVerificationSvc, messagePublisher, log)
-	return emailVerificationSentHandler
+	sendEmailVerificationTaskHandler := taskhandlers.NewSendEmailVerificationTaskHandler(emailClient, userVerificationSvc, userRepo, log)
+	return sendEmailVerificationTaskHandler
 }

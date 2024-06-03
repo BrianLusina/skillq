@@ -9,7 +9,6 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/domain/id"
-	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/utils/security"
 	"github.com/pkg/errors"
 )
@@ -26,7 +25,6 @@ var _ inbound.UserVerificationService = (*userVerificationService)(nil)
 func NewVerification(
 	userSvc inbound.UserService,
 	userVerificationRepo repositories.UserVerificationRepoPort,
-	messagePublisher amqppublisher.AmqpEventPublisher,
 ) inbound.UserVerificationService {
 	return &userVerificationService{
 		userSvc:              userSvc,

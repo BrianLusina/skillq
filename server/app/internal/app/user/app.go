@@ -3,7 +3,6 @@ package userapp
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
@@ -11,6 +10,7 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/handlers"
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
+	"github.com/BrianLusina/skillq/server/infra/clients/email"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
 	amqpconsumer "github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
@@ -38,13 +38,19 @@ type (
 		AmqpClient         *amqp.AmqpClient
 		AmqpEventPublisher amqppublisher.AmqpEventPublisher
 		AmqpEventConsumer  amqpconsumer.AmqpEventConsumer
-		StorageClient      storage.StorageClient
+
+		StorageClient storage.StorageClient
 
 		UserSvc inbound.UserService
 
-		EmailVerificationSentHandler    handlers.EventHandler[events.EmailVerificationSent]
-		EmailVerificationStartedHandler handlers.EventHandler[events.EmailVerificationStarted]
-		StoreImageTaskHandler           handlers.EventHandler[tasks.StoreUserImageTask]
+		UserVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel]
+		UserVerificationRepo          repositories.UserVerificationRepoPort
+		UserVerificationSvc           inbound.UserVerificationService
+
+		SendEmailVerificationTaskHandler handlers.EventHandler[tasks.SendEmailVerification]
+		StoreImageTaskHandler            handlers.EventHandler[tasks.StoreUserImageTask]
+
+		EmailClient email.EmailClient
 	}
 )
 
@@ -53,19 +59,30 @@ func New(
 	mongodbConfig mongodb.MongoDBConfig,
 	amqpConfig amqp.Config,
 	minioConfig minio.Config,
+	emailConfig email.EmailClientConfig,
+
 	logger logger.Logger,
-	usersMongoDbClient mongodb.MongoDBClient[models.UserModel],
+
 	amqpClient *amqp.AmqpClient,
 	amqpEventPublisher amqppublisher.AmqpEventPublisher,
+
 	amqpEventConsumer amqpconsumer.AmqpEventConsumer,
+
 	storageClient storage.StorageClient,
+
 	userRepo repositories.UserRepoPort,
+	usersMongoDbClient mongodb.MongoDBClient[models.UserModel],
 	userSvc inbound.UserService,
 
-	emailVerificationSentHandler handlers.EventHandler[events.EmailVerificationSent],
-	emailVerificationStartedHandler handlers.EventHandler[events.EmailVerificationStarted],
+	userVerificationMongoDbClient mongodb.MongoDBClient[models.UserVerificationModel],
+	userVerificationRepo repositories.UserVerificationRepoPort,
+	userVerificationService inbound.UserVerificationService,
+
+	sendEmailVerificationHandler handlers.EventHandler[tasks.SendEmailVerification],
 
 	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImageTask],
+
+	emailClient email.EmailClient,
 ) *UserApp {
 	return &UserApp{
 		MongoDbConfig:      mongodbConfig,
@@ -73,16 +90,24 @@ func New(
 		MinioConfig:        minioConfig,
 		Logger:             logger,
 		UsersMongoDbClient: usersMongoDbClient,
+
 		AmqpClient:         amqpClient,
 		AmqpEventPublisher: amqpEventPublisher,
 		AmqpEventConsumer:  amqpEventConsumer,
-		StorageClient:      storageClient,
-		UserRepo:           userRepo,
-		UserSvc:            userSvc,
 
-		EmailVerificationSentHandler:    emailVerificationSentHandler,
-		EmailVerificationStartedHandler: emailVerificationStartedHandler,
-		StoreImageTaskHandler:           storeImageTaskHandler,
+		StorageClient: storageClient,
+
+		UserRepo: userRepo,
+		UserSvc:  userSvc,
+
+		UserVerificationRepo:          userVerificationRepo,
+		UserVerificationMongoDbClient: userVerificationMongoDbClient,
+		UserVerificationSvc:           userVerificationService,
+
+		SendEmailVerificationTaskHandler: sendEmailVerificationHandler,
+		StoreImageTaskHandler:            storeImageTaskHandler,
+
+		EmailClient: emailClient,
 	}
 }
 
@@ -92,14 +117,14 @@ func (app *UserApp) Worker(ctx context.Context, messages <-chan rabbitmq.Deliver
 
 		switch message.Type {
 		case string(events.EmailVerificationStartedName):
-			var payload events.EmailVerificationStarted
+			var payload tasks.SendEmailVerification
 
 			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {
 				app.Logger.Error("failed to Unmarshal message", err)
 			}
 
-			err = app.EmailVerificationStartedHandler.Handle(ctx, &payload)
+			err = app.SendEmailVerificationTaskHandler.Handle(ctx, &payload)
 
 			if err != nil {
 				if err = message.Reject(false); err != nil {
@@ -114,29 +139,28 @@ func (app *UserApp) Worker(ctx context.Context, messages <-chan rabbitmq.Deliver
 				}
 			}
 
-		case string(events.EmailVerificationSentName):
-			var payload events.EmailVerificationSent
+		case string(tasks.StoreUserImageTaskName):
+			var payload tasks.StoreUserImageTask
 
 			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {
-				slog.Error("failed to Unmarshal message", err)
+				app.Logger.Error("failed to Unmarshal message", err)
 			}
 
-			err = app.EmailVerificationSentHandler.Handle(ctx, &payload)
+			err = app.StoreImageTaskHandler.Handle(ctx, &payload)
 
 			if err != nil {
 				if err = message.Reject(false); err != nil {
-					slog.Error("failed to delivery.Reject", err)
+					app.Logger.Error("failed to delivery.Reject", err)
 				}
 
-				slog.Error("failed to process delivery", err)
+				app.Logger.Error("failed to process delivery", err)
 			} else {
 				err = message.Ack(false)
 				if err != nil {
-					slog.Error("failed to acknowledge delivery", err)
+					app.Logger.Error("failed to acknowledge delivery", err)
 				}
 			}
-
 		default:
 			app.Logger.Info("default")
 		}

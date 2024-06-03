@@ -2,32 +2,32 @@ package amqpconsumer
 
 type Option func(*amqpConsumerClient)
 
-func ExchangeName(exchangeName string) Option {
-	return func(p *amqpConsumerClient) {
-		p.exchangeName = exchangeName
+func ExchangeName(name string) Option {
+	return func(c *amqpConsumerClient) {
+		c.exchangeName = name
 	}
 }
 
-func QueueName(queueName string) Option {
-	return func(p *amqpConsumerClient) {
-		p.queueName = queueName
+func QueueName(name string) Option {
+	return func(c *amqpConsumerClient) {
+		c.queueName = name
 	}
 }
 
 func BindingKey(bindingKey string) Option {
-	return func(p *amqpConsumerClient) {
-		p.bindingKey = bindingKey
+	return func(c *amqpConsumerClient) {
+		c.bindingKey = bindingKey
 	}
 }
 
-func ConsumerTag(consumerTag string) Option {
-	return func(p *amqpConsumerClient) {
-		p.consumerTag = consumerTag
+func ConsumerTag(tag string) Option {
+	return func(c *amqpConsumerClient) {
+		c.consumerTag = tag
 	}
 }
 
-func WorkerPoolSize(workerPoolSize int) Option {
-	return func(p *amqpConsumerClient) {
-		p.workerPoolSize = workerPoolSize
+func WorkerPoolSize(size int) Option {
+	return func(c *amqpConsumerClient) {
+		c.workerPoolSize = size
 	}
 }

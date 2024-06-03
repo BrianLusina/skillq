@@ -9,7 +9,6 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
-	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
@@ -81,8 +80,8 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	event := events.EmailVerificationStarted{
-		UserUUID: createdUser.UUID(),
+	event := tasks.SendEmailVerification{
+		UserUUID: createdUser.UUID().String(),
 		Email:    createdUser.Email(),
 		Name:     createdUser.Name(),
 	}
@@ -95,7 +94,7 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 
 	// publish event
 	if err := svc.messagePublisher.Publish(ctx, message); err != nil {
-		return nil, errors.Wrapf(err, "failed to publish user email verification event: %v", message)
+		return nil, errors.Wrapf(err, "failed to publish send email verification: %v", message)
 	}
 
 	storeUserImageTask := tasks.StoreUserImageTask{

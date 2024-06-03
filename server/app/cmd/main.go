@@ -11,7 +11,7 @@ import (
 	userv1 "github.com/BrianLusina/skillq/server/app/api/rest/routes/users/v1"
 	"github.com/BrianLusina/skillq/server/app/cmd/config"
 	userapp "github.com/BrianLusina/skillq/server/app/internal/app/user"
-	verificationapp "github.com/BrianLusina/skillq/server/app/internal/app/verification"
+	"github.com/BrianLusina/skillq/server/infra/clients/email"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
 	amqpconsumer "github.com/BrianLusina/skillq/server/infra/messaging/amqp/consumer"
@@ -96,13 +96,13 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 		},
 	}
 
-	userVerificationMongodbConfig := mongodb.MongoDBConfig{
-		Client: mongoDbConfig.Client,
-		DBConfig: mongodb.DatabaseConfig{
-			DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
-			CollectionName: "userVerification",
-		},
-	}
+	// userVerificationMongodbConfig := mongodb.MongoDBConfig{
+	// 	Client: mongoDbConfig.Client,
+	// 	DBConfig: mongodb.DatabaseConfig{
+	// 		DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
+	// 		CollectionName: "userVerification",
+	// 	},
+	// }
 
 	amqpConfig := amqp.Config{
 		Username: cfg.RabbitMQ.Username,
@@ -119,16 +119,22 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 		Token:           cfg.MinioConfig.Token,
 	}
 
-	userApp := prepareUserApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig)
-	_ = prepareUserVerificationApp(ctx, cancel, userVerificationMongodbConfig, amqpConfig, minioConfig)
+	emailConfig := email.EmailClientConfig{
+		Host:     cfg.EmailConfig.Host,
+		Port:     cfg.EmailConfig.Port,
+		Password: cfg.EmailConfig.Password,
+		From:     cfg.EmailConfig.From,
+	}
+
+	userApp := prepareUserApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig, emailConfig)
 
 	// routing
 	userApi := userv1.NewUserApi(userApp.UserSvc, appLogger)
 	userApi.RegisterHandlers(app)
 }
 
-func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) *userapp.UserApp {
-	userApp, err := userapp.InitApp(mongoDbConfig, amqpConfig, minioConfig)
+func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config, emailConfig email.EmailClientConfig) *userapp.UserApp {
+	userApp, err := userapp.InitApp(mongoDbConfig, amqpConfig, minioConfig, emailConfig)
 	if err != nil {
 		slog.Error("failed init user app", err)
 		cancel()
@@ -137,13 +143,29 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 
 	// Configure publisher and start workers
 	userApp.AmqpEventPublisher.Configure(
-		amqppublisher.ExchangeName("email-verification-exchange"),
+		amqppublisher.Exchange(
+			amqppublisher.ExchangeOptionParams{
+				Name:    "skillq-send-email-verification-exchange",
+				Kind:    "fanout",
+				Durable: true,
+			},
+		),
 		amqppublisher.BindingKey("email-verification-routing-key"),
-		amqppublisher.MessageTypeName("email-verification-started"),
+	)
+
+	userApp.AmqpEventPublisher.Configure(
+		amqppublisher.Exchange(
+			amqppublisher.ExchangeOptionParams{
+				Name:    "skillq-verify-email-exchange",
+				Kind:    "fanout",
+				Durable: true,
+			},
+		),
+		amqppublisher.BindingKey("skillq-verify-email-routing-key"),
 	)
 
 	userApp.AmqpEventConsumer.Configure(
-		amqpconsumer.ExchangeName("skillq-user-exchange"),
+		amqpconsumer.ExchangeName("skillq-exchange"),
 		amqpconsumer.QueueName("skillq-user-queue"),
 		amqpconsumer.BindingKey("skillq-user-routing-key"),
 		amqpconsumer.ConsumerTag("skillq-user-consumer"),
@@ -159,38 +181,4 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 	}()
 
 	return userApp
-}
-
-func prepareUserVerificationApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config) *verificationapp.UserVerificationApp {
-	userVerificationApp, err := verificationapp.InitializeUserVerificationApp(mongoDbConfig, amqpConfig, minioConfig)
-	if err != nil {
-		slog.Error("failed init verification app", err)
-		cancel()
-		<-ctx.Done()
-	}
-
-	// Configure publisher and start workers
-	userVerificationApp.AmqpEventPublisher.Configure(
-		amqppublisher.ExchangeName("skillq-user-verification-exchange"),
-		amqppublisher.BindingKey("skillq-user-verification-routing-key"),
-		amqppublisher.MessageTypeName("skillq-user-verification"),
-	)
-
-	userVerificationApp.AmqpEventConsumer.Configure(
-		amqpconsumer.ExchangeName("skillq-user-verification-exchange"),
-		amqpconsumer.QueueName("skillq-user-verification-queue"),
-		amqpconsumer.BindingKey("skillq-user-verification-key"),
-		amqpconsumer.ConsumerTag("skillq-user-verification-consumer"),
-	)
-
-	go func() {
-		err1 := userVerificationApp.AmqpEventConsumer.StartConsumer(userVerificationApp.Worker)
-		if err1 != nil {
-			slog.Error("failed to start verification Consumer", err1)
-			cancel()
-			<-ctx.Done()
-		}
-	}()
-
-	return userVerificationApp
 }
