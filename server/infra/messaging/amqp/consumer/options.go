@@ -1,16 +1,29 @@
 package amqpconsumer
 
+import "github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+
 type Option func(*amqpConsumerClient)
 
-func ExchangeName(name string) Option {
+// Exchange configures an exchange for the consumer to construct
+func Exchange(params amqp.ExchangeOptionParams) Option {
 	return func(c *amqpConsumerClient) {
-		c.exchangeName = name
+		c.exchangeName = params.Name
+		c.exchangeKind = params.Kind
+		c.exchangeDurable = params.Durable
+		c.exchangeAutoDelete = params.AutoDelete
+		c.exchangeInternal = params.Internal
+		c.exchangeNoWait = params.NoWait
 	}
 }
 
-func QueueName(name string) Option {
+func Queue(params amqp.QueueOptionParams) Option {
 	return func(c *amqpConsumerClient) {
-		c.queueName = name
+		c.queueName = params.Name
+		c.queueDurable = params.Durable
+		c.queueAutoDelete = params.AutoDelete
+		c.queueExclusive = params.Exclusive
+		c.queueNoWait = params.NoWait
+		c.queueArgs = params.Args
 	}
 }
 
@@ -20,9 +33,24 @@ func BindingKey(bindingKey string) Option {
 	}
 }
 
-func ConsumerTag(tag string) Option {
+// Consumer sets up the consumer options
+func Consumer(params amqp.ConsumerOptionParams) Option {
 	return func(c *amqpConsumerClient) {
-		c.consumerTag = tag
+		c.consumerTag = params.Tag
+		c.consumeAutoAck = params.AutoAck
+		c.consumeExclusive = params.Exclusive
+		c.consumeNoLocal = params.NoLocal
+		c.consumeNoWait = params.NoWait
+		c.consumerArgs = params.Args
+	}
+}
+
+// Qos sets up the consumer QOS for message consumption
+func Qos(params amqp.QosOptionParams) Option {
+	return func(c *amqpConsumerClient) {
+		c.qosPrefetchCount = params.PrefetchCount
+		c.qosPrefetchSize = params.PrefetchSize
+		c.qosPrefetchGlobal = params.PrefetchGlobal
 	}
 }
 

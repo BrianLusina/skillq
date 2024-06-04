@@ -14,28 +14,66 @@ import (
 
 // amqpConsumerClient defines a consumer that handles consumption of messages from an AMQP Broker
 type amqpConsumerClient struct {
-	exchangeName   string
-	queueName      string
-	bindingKey     string
-	consumerTag    string
-	workerPoolSize int
-	client         *amqp.AmqpClient
-	logger         logger.Logger
-	handlers       map[string]func(payload []byte) error
+	exchangeName       string
+	exchangeKind       string
+	exchangeDurable    bool
+	exchangeAutoDelete bool
+	exchangeInternal   bool
+	exchangeNoWait     bool
+	exchangeArgs       map[string]any
+	queueName          string
+	queueDurable       bool
+	queueAutoDelete    bool
+	queueExclusive     bool
+	queueNoWait        bool
+	queueArgs          map[string]any
+	bindingKey         string
+	consumerTag        string
+	consumeAutoAck     bool
+	consumeExclusive   bool
+	consumeNoLocal     bool
+	consumeNoWait      bool
+	consumerArgs       map[string]any
+	qosPrefetchCount   int
+	qosPrefetchSize    int
+	qosPrefetchGlobal  bool
+	workerPoolSize     int
+	client             *amqp.AmqpClient
+	logger             logger.Logger
+	handlers           map[string]func(payload []byte) error
 }
 
 // NewConsumer creates a new AMQP consumer
 func NewConsumer(client *amqp.AmqpClient, log logger.Logger) (AmqpEventConsumer, error) {
 	handlers := make(map[string]func(payload []byte) error)
 	sub := &amqpConsumerClient{
-		client:         client,
-		logger:         log,
-		exchangeName:   _exchangeName,
-		queueName:      _queueName,
-		bindingKey:     _bindingKey,
-		consumerTag:    _consumerTag,
-		workerPoolSize: _workerPoolSize,
-		handlers:       handlers,
+		client:             client,
+		logger:             log,
+		exchangeName:       _exchangeName,
+		exchangeKind:       _exchangeKind,
+		exchangeDurable:    _exchangeDurable,
+		exchangeAutoDelete: _exchangeAutoDelete,
+		exchangeInternal:   _exchangeInternal,
+		exchangeNoWait:     _exchangeNoWait,
+		exchangeArgs:       map[string]any{},
+		queueName:          _queueName,
+		queueDurable:       _queueDurable,
+		queueAutoDelete:    _queueAutoDelete,
+		queueExclusive:     _queueExclusive,
+		queueNoWait:        _queueNoWait,
+		queueArgs:          map[string]any{},
+		bindingKey:         _bindingKey,
+		consumerTag:        _consumerTag,
+		consumeAutoAck:     _consumeAutoAck,
+		consumeExclusive:   _consumeExclusive,
+		consumeNoLocal:     _consumeNoLocal,
+		consumeNoWait:      _consumeNoWait,
+		consumerArgs:       map[string]any{},
+		qosPrefetchCount:   _prefetchCount,
+		qosPrefetchSize:    _prefetchSize,
+		qosPrefetchGlobal:  _prefetchGlobal,
+		workerPoolSize:     _workerPoolSize,
+		handlers:           handlers,
 	}
 
 	return sub, nil
@@ -43,19 +81,19 @@ func NewConsumer(client *amqp.AmqpClient, log logger.Logger) (AmqpEventConsumer,
 
 // Consumes a message from a given queue. This is mostly a blocking operation
 func (c *amqpConsumerClient) Consume(ctx context.Context, queue string) error {
-	ch, err := c.CreateChannel()
+	ch, err := c.createChannel()
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
 
 	msgs, err := ch.Consume(
-		queue,             // queue
-		c.consumerTag,     // consumer
-		_consumeAutoAck,   // auto-ack
-		_consumeExclusive, // exclusive
-		_consumeNoLocal,   // no-local
-		_consumeNoWait,    // no-wait
-		nil,               // args
+		queue,              // queue
+		c.consumerTag,      // consumer
+		c.consumeAutoAck,   // auto-ack
+		c.consumeExclusive, // exclusive
+		c.consumeNoLocal,   // no-local
+		c.consumeNoWait,    // no-wait
+		c.consumerArgs,     // args
 	)
 	if err != nil {
 		return fmt.Errorf("failed to register as consumer: %w", err)
@@ -99,7 +137,7 @@ func (c *amqpConsumerClient) StartConsumer(fn func(ctx context.Context, message 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ch, err := c.CreateChannel()
+	ch, err := c.createChannel()
 	if err != nil {
 		return errors.Wrapf(err, "failed to create channel")
 	}
@@ -109,11 +147,11 @@ func (c *amqpConsumerClient) StartConsumer(fn func(ctx context.Context, message 
 	deliveries, err := ch.Consume(
 		c.queueName,
 		c.consumerTag,
-		_consumeAutoAck,
-		_consumeExclusive,
-		_consumeNoLocal,
-		_consumeNoWait,
-		nil,
+		c.consumeAutoAck,
+		c.consumeExclusive,
+		c.consumeNoLocal,
+		c.consumeNoWait,
+		c.consumerArgs,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "failed to consume messages")
@@ -136,8 +174,8 @@ func (c *amqpConsumerClient) AddHandler(ctx context.Context, task string, handle
 
 }
 
-// CreateChannel creates a rabbit MQ channel
-func (c *amqpConsumerClient) CreateChannel() (*rabbitmq.Channel, error) {
+// createChannel creates a rabbit MQ channel
+func (c *amqpConsumerClient) createChannel() (*rabbitmq.Channel, error) {
 	ch, err := c.client.AmqpConn.Channel()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create AMQP channel")
@@ -146,19 +184,19 @@ func (c *amqpConsumerClient) CreateChannel() (*rabbitmq.Channel, error) {
 	c.logger.Infof("Declaring exchange: %s", c.exchangeName)
 	err = ch.ExchangeDeclare(
 		c.exchangeName,
-		_exchangeKind,
-		_exchangeDurable,
-		_exchangeAutoDelete,
-		_exchangeInternal,
-		_exchangeNoWait,
-		nil,
+		c.exchangeKind,
+		c.exchangeDurable,
+		c.exchangeAutoDelete,
+		c.exchangeInternal,
+		c.exchangeNoWait,
+		c.exchangeArgs,
 	)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to declare exchange: %s", c.exchangeName)
 	}
 
-	queue, err := ch.QueueDeclare(c.queueName, _queueDurable, _queueAutoDelete, _queueExclusive, _queueNoWait, nil)
+	queue, err := ch.QueueDeclare(c.queueName, c.queueDurable, c.queueAutoDelete, c.queueExclusive, c.queueNoWait, c.queueArgs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to declare queue: %s", c.queueName)
 	}
@@ -171,7 +209,7 @@ func (c *amqpConsumerClient) CreateChannel() (*rabbitmq.Channel, error) {
 		queue.Name,
 		c.bindingKey,
 		c.exchangeName,
-		_queueNoWait,
+		c.queueNoWait,
 		nil,
 	)
 	if err != nil {
@@ -181,9 +219,9 @@ func (c *amqpConsumerClient) CreateChannel() (*rabbitmq.Channel, error) {
 	c.logger.Infof("Queue bound to exchange, starting to consumer from queue, consumerTag: %s", c.consumerTag)
 
 	err = ch.Qos(
-		_prefetchCount,  // prefetch count
-		_prefetchSize,   // prefetch size
-		_prefetchGlobal, // global
+		c.qosPrefetchCount,
+		c.qosPrefetchSize,
+		c.qosPrefetchGlobal,
 	)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failure to qos channel")

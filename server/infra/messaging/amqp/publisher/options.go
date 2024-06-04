@@ -1,20 +1,12 @@
 package amqppublisher
 
+import "github.com/BrianLusina/skillq/server/infra/messaging/amqp"
+
 // Option allows adding options to the AMQP publisher
 type Option func(*amqpPublisherClient)
 
-type ExchangeOptionParams struct {
-	Name       string
-	Kind       string
-	Durable    bool
-	AutoDelete bool
-	Internal   bool
-	NoWait     bool
-	Args       map[string]any
-}
-
 // Exchange adds an exchange name to the publisher to be used when publishing messages
-func Exchange(params ExchangeOptionParams) Option {
+func Exchange(params amqp.ExchangeOptionParams) Option {
 	return func(p *amqpPublisherClient) {
 		amqpChan, err := p.client.AmqpConn.Channel()
 		if err != nil {

@@ -144,7 +144,7 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 	// Configure publisher and start workers
 	userApp.AmqpEventPublisher.Configure(
 		amqppublisher.Exchange(
-			amqppublisher.ExchangeOptionParams{
+			amqp.ExchangeOptionParams{
 				Name:    "skillq-send-email-verification-exchange",
 				Kind:    "fanout",
 				Durable: true,
@@ -155,7 +155,7 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 
 	userApp.AmqpEventPublisher.Configure(
 		amqppublisher.Exchange(
-			amqppublisher.ExchangeOptionParams{
+			amqp.ExchangeOptionParams{
 				Name:    "skillq-verify-email-exchange",
 				Kind:    "fanout",
 				Durable: true,
@@ -165,10 +165,24 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 	)
 
 	userApp.AmqpEventConsumer.Configure(
-		amqpconsumer.ExchangeName("skillq-exchange"),
-		amqpconsumer.QueueName("skillq-user-queue"),
+		amqpconsumer.Exchange(
+			amqp.ExchangeOptionParams{
+				Name:    "skillq-exchange",
+				Kind:    "fanout",
+				Durable: true,
+			},
+		),
+		amqpconsumer.Queue(
+			amqp.QueueOptionParams{
+				Name: "skillq-user-queue",
+			},
+		),
 		amqpconsumer.BindingKey("skillq-user-routing-key"),
-		amqpconsumer.ConsumerTag("skillq-user-consumer"),
+		amqpconsumer.Consumer(
+			amqp.ConsumerOptionParams{
+				Tag: "skillq-user-consumer",
+			},
+		),
 	)
 
 	go func() {
