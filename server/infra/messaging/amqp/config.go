@@ -48,3 +48,9 @@ type QosOptionParams struct {
 	// global
 	PrefetchGlobal bool
 }
+
+// PublishOptionsParams for setting publishing options for publishers
+type PublishOptionsParams struct {
+	PublishImmediate bool
+	PublishMandatory bool
+}

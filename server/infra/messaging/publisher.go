@@ -8,5 +8,5 @@ type EventPublisher interface {
 	Publish(ctx context.Context, message Message) error
 
 	// Close closes connection to a broker
-	Close()
+	Close() error
 }

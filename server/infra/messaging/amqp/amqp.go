@@ -53,8 +53,11 @@ func NewAmqpClient(config Config, log logger.Logger) (*AmqpClient, error) {
 }
 
 // Close closes connection to a broker
-func (p *AmqpClient) Close() {
-	if err := p.AmqpConn.Close(); err != nil {
+func (p *AmqpClient) Close() error {
+	err := p.AmqpConn.Close()
+	if err != nil {
 		p.logger.Errorf("Publisher CloseChan: %v", err)
+		return err
 	}
+	return nil
 }

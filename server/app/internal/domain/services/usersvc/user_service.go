@@ -8,12 +8,12 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound/common"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/publishers"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
 	"github.com/BrianLusina/skillq/server/infra/messaging"
-	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/utils/security"
 	"github.com/BrianLusina/skillq/server/utils/tools"
@@ -22,9 +22,10 @@ import (
 
 // userService is the structure for the business logic handling user management
 type userService struct {
-	userRepo         repositories.UserRepoPort
-	messagePublisher amqppublisher.AmqpEventPublisher
-	storageClient    storage.StorageClient
+	userRepo                 repositories.UserRepoPort
+	sendEmailEventPublisher  publishers.SendEmailEventPublisherPort
+	storeImageEventPublisher publishers.StoreImageEventPublisherPort
+	storageClient            storage.StorageClient
 }
 
 var _ inbound.UserService = (*userService)(nil)
@@ -32,13 +33,15 @@ var _ inbound.UserService = (*userService)(nil)
 // New creates a new user service implementation of the user use case
 func New(
 	userRepo repositories.UserRepoPort,
-	messagePublisher amqppublisher.AmqpEventPublisher,
+	sendEmailEventPublisher publishers.SendEmailEventPublisherPort,
+	storeImageEventPublisher publishers.StoreImageEventPublisherPort,
 	storageClient storage.StorageClient,
 ) inbound.UserService {
 	return &userService{
-		userRepo:         userRepo,
-		messagePublisher: messagePublisher,
-		storageClient:    storageClient,
+		userRepo:                 userRepo,
+		sendEmailEventPublisher:  sendEmailEventPublisher,
+		storeImageEventPublisher: storeImageEventPublisher,
+		storageClient:            storageClient,
 	}
 }
 
@@ -93,7 +96,7 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 	}
 
 	// publish event
-	if err := svc.messagePublisher.Publish(ctx, message); err != nil {
+	if err := svc.sendEmailEventPublisher.Publish(ctx, message); err != nil {
 		return nil, errors.Wrapf(err, "failed to publish send email verification: %v", message)
 	}
 
@@ -111,7 +114,7 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 	}
 
 	// publish store image task
-	if err := svc.messagePublisher.Publish(ctx, storeImageMessage); err != nil {
+	if err := svc.storeImageEventPublisher.Publish(ctx, storeImageMessage); err != nil {
 		return nil, errors.Wrapf(err, "failed to publish store user image task: %v", storeImageMessage)
 	}
 

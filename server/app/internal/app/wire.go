@@ -1,7 +1,7 @@
 //go:build wireinject
 // +build wireinject
 
-package userapp
+package app
 
 import (
 	"github.com/BrianLusina/skillq/server/app/di"
@@ -18,7 +18,7 @@ func InitApp(
 	amqpConfig amqp.Config,
 	minioConfig minio.Config,
 	emailConfig email.EmailClientConfig,
-) (*UserApp, error) {
+) (*App, error) {
 	panic(wire.Build(
 		New,
 		di.LoggerSet,
@@ -26,6 +26,8 @@ func InitApp(
 		di.UserRepositoryAdapterSet,
 		di.AmqpClientSet,
 		di.AmqpEventPublisherSet,
+		di.SendEmailEventPublisherSet,
+		di.StoreImageEventPublisherSet,
 		di.StorageMinioClientSet,
 		di.UserServiceSet,
 		di.ProvideUserVerificationMongoDbClient,

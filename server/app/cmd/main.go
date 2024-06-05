@@ -10,7 +10,7 @@ import (
 
 	userv1 "github.com/BrianLusina/skillq/server/app/api/rest/routes/users/v1"
 	"github.com/BrianLusina/skillq/server/app/cmd/config"
-	userapp "github.com/BrianLusina/skillq/server/app/internal/app/user"
+	"github.com/BrianLusina/skillq/server/app/internal/app"
 	"github.com/BrianLusina/skillq/server/infra/clients/email"
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
@@ -56,7 +56,7 @@ func main() {
 	app.Use(cors.New())
 
 	// prepare and setup app
-	prepareApp(ctx, cancel, app, cfg, appLogger)
+	setupApp(ctx, cancel, app, cfg, appLogger)
 
 	// Start the server
 	err = app.Listen(fmt.Sprintf(":%d", cfg.HTTP.Port))
@@ -73,7 +73,7 @@ func main() {
 	}
 }
 
-func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cfg *config.Config, appLogger logger.Logger) {
+func setupApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cfg *config.Config, appLogger logger.Logger) {
 	// configuration
 	mongoDbConfig := mongodb.MongoDBConfig{
 		Client: mongodb.ClientOptions{
@@ -126,15 +126,15 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, 
 		From:     cfg.EmailConfig.From,
 	}
 
-	userApp := prepareUserApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig, emailConfig)
+	skillQApp := prepareApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig, emailConfig)
 
 	// routing
-	userApi := userv1.NewUserApi(userApp.UserSvc, appLogger)
+	userApi := userv1.NewUserApi(skillQApp.UserSvc, appLogger)
 	userApi.RegisterHandlers(app)
 }
 
-func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config, emailConfig email.EmailClientConfig) *userapp.UserApp {
-	userApp, err := userapp.InitApp(mongoDbConfig, amqpConfig, minioConfig, emailConfig)
+func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config, emailConfig email.EmailClientConfig) *app.App {
+	app, err := app.InitApp(mongoDbConfig, amqpConfig, minioConfig, emailConfig)
 	if err != nil {
 		slog.Error("failed init user app", err)
 		cancel()
@@ -142,32 +142,32 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 	}
 
 	// Configure publisher and start workers
-	userApp.AmqpEventPublisher.Configure(
+	app.SendEmailEventPublisher.Configure(
 		amqppublisher.Exchange(
 			amqp.ExchangeOptionParams{
-				Name:    "skillq-send-email-verification-exchange",
+				Name:    "send-email-exchange",
 				Kind:    "fanout",
 				Durable: true,
 			},
 		),
-		amqppublisher.BindingKey("email-verification-routing-key"),
+		amqppublisher.BindingKey("send-email-routing-key"),
 	)
 
-	userApp.AmqpEventPublisher.Configure(
+	app.StoreImageEventPublisher.Configure(
 		amqppublisher.Exchange(
 			amqp.ExchangeOptionParams{
-				Name:    "skillq-verify-email-exchange",
+				Name:    "store-image-email-exchange",
 				Kind:    "fanout",
 				Durable: true,
 			},
 		),
-		amqppublisher.BindingKey("skillq-verify-email-routing-key"),
+		amqppublisher.BindingKey("store-image-routing-key"),
 	)
 
-	userApp.AmqpEventConsumer.Configure(
+	app.AmqpEventConsumer.Configure(
 		amqpconsumer.Exchange(
 			amqp.ExchangeOptionParams{
-				Name:    "skillq-exchange",
+				Name:    "send-email-exchange",
 				Kind:    "fanout",
 				Durable: true,
 			},
@@ -177,16 +177,16 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 				Name: "skillq-user-queue",
 			},
 		),
-		amqpconsumer.BindingKey("skillq-user-routing-key"),
+		amqpconsumer.BindingKey("send-email-routing-key"),
 		amqpconsumer.Consumer(
 			amqp.ConsumerOptionParams{
-				Tag: "skillq-user-consumer",
+				Tag: "send-user-consumer",
 			},
 		),
 	)
 
 	go func() {
-		err1 := userApp.AmqpEventConsumer.StartConsumer(userApp.Worker)
+		err1 := app.AmqpEventConsumer.StartConsumer(app.Worker)
 		if err1 != nil {
 			slog.Error("failed to start user app Consumer", err1)
 			cancel()
@@ -194,5 +194,5 @@ func prepareUserApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfi
 		}
 	}()
 
-	return userApp
+	return app
 }

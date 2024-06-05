@@ -42,9 +42,11 @@ func (m *MockAmqpEventPublisher) EXPECT() *MockAmqpEventPublisherMockRecorder {
 }
 
 // Close mocks base method.
-func (m *MockAmqpEventPublisher) Close() {
+func (m *MockAmqpEventPublisher) Close() error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Close")
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Close indicates an expected call of Close.

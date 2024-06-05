@@ -1,4 +1,4 @@
-package userapp
+package app
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/inbound"
+	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/publishers"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/internal/handlers"
 	"github.com/BrianLusina/skillq/server/app/pkg/events"
@@ -23,8 +24,8 @@ import (
 )
 
 type (
-	// UserApp is a structure for the user application
-	UserApp struct {
+	// App is a structure for the user application
+	App struct {
 		MongoDbConfig mongodb.MongoDBConfig
 		AmqpConfig    amqp.Config
 		MinioConfig   minio.Config
@@ -38,6 +39,9 @@ type (
 		AmqpClient         *amqp.AmqpClient
 		AmqpEventPublisher amqppublisher.AmqpEventPublisher
 		AmqpEventConsumer  amqpconsumer.AmqpEventConsumer
+
+		SendEmailEventPublisher  publishers.SendEmailEventPublisherPort
+		StoreImageEventPublisher publishers.StoreImageEventPublisherPort
 
 		StorageClient storage.StorageClient
 
@@ -65,8 +69,10 @@ func New(
 
 	amqpClient *amqp.AmqpClient,
 	amqpEventPublisher amqppublisher.AmqpEventPublisher,
-
 	amqpEventConsumer amqpconsumer.AmqpEventConsumer,
+
+	sendEmailEventPublisher publishers.SendEmailEventPublisherPort,
+	storeImageEventPublisher publishers.StoreImageEventPublisherPort,
 
 	storageClient storage.StorageClient,
 
@@ -83,8 +89,8 @@ func New(
 	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImageTask],
 
 	emailClient email.EmailClient,
-) *UserApp {
-	return &UserApp{
+) *App {
+	return &App{
 		MongoDbConfig:      mongodbConfig,
 		AmqpConfig:         amqpConfig,
 		MinioConfig:        minioConfig,
@@ -94,6 +100,9 @@ func New(
 		AmqpClient:         amqpClient,
 		AmqpEventPublisher: amqpEventPublisher,
 		AmqpEventConsumer:  amqpEventConsumer,
+
+		SendEmailEventPublisher:  sendEmailEventPublisher,
+		StoreImageEventPublisher: storeImageEventPublisher,
 
 		StorageClient: storageClient,
 
@@ -111,7 +120,7 @@ func New(
 	}
 }
 
-func (app *UserApp) Worker(ctx context.Context, messages <-chan rabbitmq.Delivery) {
+func (app *App) Worker(ctx context.Context, messages <-chan rabbitmq.Delivery) {
 	for message := range messages {
 		app.Logger.Infof("Processing message with Tag: %s & Type: %s", message.DeliveryTag, message.Type)
 

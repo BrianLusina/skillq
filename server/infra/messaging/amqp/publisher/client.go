@@ -15,21 +15,25 @@ import (
 
 // amqpPublisherClient handles defines the methods used to handle publication of messages to a topic on a broker
 type amqpPublisherClient struct {
-	client          *amqp.AmqpClient
-	exchangeName    string
-	bindingKey      string
-	messageTypeName string
-	logger          logger.Logger
+	client           *amqp.AmqpClient
+	exchangeName     string
+	bindingKey       string
+	messageTypeName  string
+	publishMandatory bool
+	publishImmediate bool
+	logger           logger.Logger
 }
 
 // NewPublisher creates a new AMQP Publisher
 func NewPublisher(client *amqp.AmqpClient, log logger.Logger) (AmqpEventPublisher, error) {
 	publisher := &amqpPublisherClient{
-		client:          client,
-		logger:          log,
-		exchangeName:    _exchangeName,
-		bindingKey:      _bindingKey,
-		messageTypeName: _messageTypeName,
+		client:           client,
+		logger:           log,
+		exchangeName:     _exchangeName,
+		bindingKey:       _bindingKey,
+		messageTypeName:  _messageTypeName,
+		publishMandatory: _publishMandatory,
+		publishImmediate: _publishImmediate,
 	}
 
 	return publisher, nil
@@ -62,8 +66,8 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, message messaging.Mes
 		ctx,
 		p.exchangeName,
 		p.bindingKey,
-		_publishMandatory,
-		_publishImmediate,
+		p.publishMandatory,
+		p.publishImmediate,
 		rabbitmq.Publishing{
 			ContentType:  message.ContentType,
 			DeliveryMode: rabbitmq.Persistent,
@@ -84,8 +88,8 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, message messaging.Mes
 }
 
 // Close closes connection to a broker
-func (p *amqpPublisherClient) Close() {
-	p.client.Close()
+func (p *amqpPublisherClient) Close() error {
+	return p.client.Close()
 }
 
 func (p *amqpPublisherClient) Configure(opts ...Option) AmqpEventPublisher {

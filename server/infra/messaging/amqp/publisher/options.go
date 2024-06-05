@@ -30,6 +30,13 @@ func Exchange(params amqp.ExchangeOptionParams) Option {
 	}
 }
 
+func PublishConfig(params amqp.PublishOptionsParams) Option {
+	return func(apc *amqpPublisherClient) {
+		apc.publishMandatory = params.PublishMandatory
+		apc.publishImmediate = params.PublishImmediate
+	}
+}
+
 // BindingKey allows adding a binding key to the publisher
 func BindingKey(bindingKey string) Option {
 	return func(p *amqpPublisherClient) {
