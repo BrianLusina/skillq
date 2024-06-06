@@ -139,10 +139,18 @@ func (c *amqpConsumerClient) StartConsumer(fn func(ctx context.Context, message 
 
 	ch, err := c.createChannel()
 	if err != nil {
+		c.logger.Errorf("Failed to create channel with error: %s", err.Error())
 		return errors.Wrapf(err, "failed to create channel")
 	}
+	c.logger.Info("Successfully created channel")
 
-	defer ch.Close()
+	defer func() {
+		c.logger.Info("Closing channel connection")
+		err := ch.Close()
+		if err != nil {
+			c.logger.Errorf("Failed to close channel connection %s", err.Error())
+		}
+	}()
 
 	deliveries, err := ch.Consume(
 		c.queueName,
@@ -154,8 +162,11 @@ func (c *amqpConsumerClient) StartConsumer(fn func(ctx context.Context, message 
 		c.consumerArgs,
 	)
 	if err != nil {
+		c.logger.Errorf("Failed to consume messages with error: %s", err.Error())
 		return errors.Wrapf(err, "failed to consume messages")
 	}
+
+	c.logger.Infof("Retrieved deliveries of count %d from queue %s", len(deliveries), c.queueName)
 
 	forever := make(chan bool)
 
@@ -178,6 +189,7 @@ func (c *amqpConsumerClient) AddHandler(ctx context.Context, task string, handle
 func (c *amqpConsumerClient) createChannel() (*rabbitmq.Channel, error) {
 	ch, err := c.client.AmqpConn.Channel()
 	if err != nil {
+		c.logger.Errorf("Failed to create AMQP channel with error: %s", err.Error())
 		return nil, errors.Wrapf(err, "failed to create AMQP channel")
 	}
 
@@ -193,16 +205,19 @@ func (c *amqpConsumerClient) createChannel() (*rabbitmq.Channel, error) {
 	)
 
 	if err != nil {
+		c.logger.Errorf("Failed to declare exchange: %s with error: %s", c.exchangeName, err.Error())
 		return nil, errors.Wrapf(err, "failed to declare exchange: %s", c.exchangeName)
 	}
 
+	c.logger.Infof("Declaring queue: %s", c.queueName)
 	queue, err := ch.QueueDeclare(c.queueName, c.queueDurable, c.queueAutoDelete, c.queueExclusive, c.queueNoWait, c.queueArgs)
 	if err != nil {
+		c.logger.Errorf("Failed to declare queue: %s with error %s", c.queueName, err.Error())
 		return nil, errors.Wrapf(err, "failed to declare queue: %s", c.queueName)
 	}
 
-	c.logger.Infof("Declaring queue, binding it to exchange: Queue: %v, messagesCount: %v, Consumer Count: %v, exchange: %v, bindingKey: %v",
-		queue.Name, queue.Messages, queue.Consumers, c.exchangeName, c.bindingKey,
+	c.logger.Infof("Declaring queue %s, binding it to exchange %s, messagesCount: %v, Consumer Count: %v, bindingKey: %v",
+		queue.Name, c.exchangeName, queue.Messages, queue.Consumers, c.bindingKey,
 	)
 
 	err = ch.QueueBind(
@@ -213,10 +228,11 @@ func (c *amqpConsumerClient) createChannel() (*rabbitmq.Channel, error) {
 		nil,
 	)
 	if err != nil {
+		c.logger.Errorf("Failed to bind exchange %s to queue %s with error: %s", c.exchangeName, queue.Name, err.Error())
 		return nil, errors.Wrapf(err, "failed to bind queue: %s", queue.Name)
 	}
 
-	c.logger.Infof("Queue bound to exchange, starting to consumer from queue, consumerTag: %s", c.consumerTag)
+	c.logger.Infof("Queue bound to exchange %s, starting to consume from queue %s, consumerTag: %s", c.exchangeName, queue.Name, c.consumerTag)
 
 	err = ch.Qos(
 		c.qosPrefetchCount,
@@ -224,6 +240,7 @@ func (c *amqpConsumerClient) createChannel() (*rabbitmq.Channel, error) {
 		c.qosPrefetchGlobal,
 	)
 	if err != nil {
+		c.logger.Errorf("Failed to QOS channel with error: %s", err.Error())
 		return nil, errors.Wrapf(err, "failure to qos channel")
 	}
 

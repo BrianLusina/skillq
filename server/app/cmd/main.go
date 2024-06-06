@@ -156,7 +156,7 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mo
 	app.StoreImageEventPublisher.Configure(
 		amqppublisher.Exchange(
 			amqp.ExchangeOptionParams{
-				Name:    "store-image-email-exchange",
+				Name:    "store-image-exchange",
 				Kind:    "fanout",
 				Durable: true,
 			},
@@ -174,13 +174,13 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mo
 		),
 		amqpconsumer.Queue(
 			amqp.QueueOptionParams{
-				Name: "skillq-user-queue",
+				Name: "send-email-queue",
 			},
 		),
 		amqpconsumer.BindingKey("send-email-routing-key"),
 		amqpconsumer.Consumer(
 			amqp.ConsumerOptionParams{
-				Tag: "send-user-consumer",
+				Tag: "send-email-consumer",
 			},
 		),
 	)
