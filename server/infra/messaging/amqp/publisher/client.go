@@ -3,25 +3,29 @@ package amqppublisher
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/BrianLusina/skillq/server/infra/logger"
 	"github.com/BrianLusina/skillq/server/infra/messaging"
 	"github.com/BrianLusina/skillq/server/infra/messaging/amqp"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	rabbitmq "github.com/rabbitmq/amqp091-go"
 )
 
 // amqpPublisherClient handles defines the methods used to handle publication of messages to a topic on a broker
 type amqpPublisherClient struct {
-	client           *amqp.AmqpClient
-	exchangeName     string
-	bindingKey       string
-	messageTypeName  string
-	publishMandatory bool
-	publishImmediate bool
-	logger           logger.Logger
+	client             *amqp.AmqpClient
+	exchangeName       string
+	exchangeKind       string
+	exchangeDurable    bool
+	exchangeAutoDelete bool
+	exchangeInternal   bool
+	exchangeNoWait     bool
+	exchangeArgs       map[string]any
+	bindingKey         string
+	messageTypeName    string
+	publishMandatory   bool
+	publishImmediate   bool
+	logger             logger.Logger
 }
 
 // NewPublisher creates a new AMQP Publisher
@@ -41,16 +45,10 @@ func NewPublisher(client *amqp.AmqpClient, log logger.Logger) (AmqpEventPublishe
 
 // Publish publishes a message to a given topic
 func (p *amqpPublisherClient) Publish(ctx context.Context, message messaging.Message) error {
-	body, err := message.ToBytes()
+	body, err := message.PayloadToBytes()
 	if err != nil {
+		p.logger.Errorf("Failed to parse message: %v", err)
 		return errors.Wrapf(err, "failed to parse message event")
-	}
-
-	var messageTypeName string
-	if message.Topic == "" {
-		messageTypeName = p.messageTypeName
-	} else {
-		messageTypeName = message.Topic
 	}
 
 	amqpChan, err := p.client.AmqpConn.Channel()
@@ -58,9 +56,15 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, message messaging.Mes
 		p.logger.Errorf("Failed to open channel: %v", err)
 		return fmt.Errorf("failed to open a channel: %w", err)
 	}
-	defer amqpChan.Close()
 
-	p.logger.Infof("Publishing message to exchange: %s, with routingKey: %s", p.exchangeName, p.bindingKey)
+	defer func() {
+		err := amqpChan.Close()
+		if err != nil {
+			p.logger.Errorf("Failed to close channel with error %v", err)
+		}
+	}()
+
+	p.logger.Infof("Publishing message %v to exchange: %s, with routingKey: %s", message, p.exchangeName, p.bindingKey)
 
 	err = amqpChan.PublishWithContext(
 		ctx,
@@ -71,10 +75,10 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, message messaging.Mes
 		rabbitmq.Publishing{
 			ContentType:  message.ContentType,
 			DeliveryMode: rabbitmq.Persistent,
-			MessageId:    uuid.New().String(),
-			Timestamp:    time.Now(),
+			MessageId:    message.ID,
+			Timestamp:    message.Timestamp,
 			Body:         body,
-			Type:         messageTypeName,
+			Type:         message.Topic,
 		},
 	)
 	if err != nil {
@@ -82,14 +86,18 @@ func (p *amqpPublisherClient) Publish(ctx context.Context, message messaging.Mes
 		return errors.Wrapf(err, "failed to publish message: %v", err)
 	}
 
-	p.logger.Infof("Successfully published message to exchange: %s, with routingKey: %s", p.exchangeName, p.bindingKey)
+	p.logger.Infof("Successfully published message %v to exchange: %s, with routingKey: %s", message, p.exchangeName, p.bindingKey)
 
 	return nil
 }
 
 // Close closes connection to a broker
 func (p *amqpPublisherClient) Close() error {
-	return p.client.Close()
+	if err := p.client.Close(); err != nil {
+		p.logger.Errorf("Failed to close client connection with error %v", err)
+		return err
+	}
+	return nil
 }
 
 func (p *amqpPublisherClient) Configure(opts ...Option) AmqpEventPublisher {

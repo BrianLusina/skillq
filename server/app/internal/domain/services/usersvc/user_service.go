@@ -83,35 +83,40 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	event := tasks.SendEmailVerification{
+	sendEmailVerification := tasks.SendEmailVerification{
 		UserUUID: createdUser.UUID().String(),
 		Email:    createdUser.Email(),
 		Name:     createdUser.Name(),
 	}
 
-	message := messaging.Message{
-		Topic:       event.Identity(),
-		Payload:     event,
-		ContentType: "text/plain",
-	}
+	sendEmailVerificationMessage := messaging.New(
+		messaging.MessageParams{
+			Topic:       sendEmailVerification.Identity(),
+			ContentType: "text/plain",
+			Payload:     sendEmailVerification,
+		},
+	)
 
 	// publish event
-	if err := svc.sendEmailEventPublisher.Publish(ctx, message); err != nil {
-		return nil, errors.Wrapf(err, "failed to publish send email verification: %v", message)
+	if err := svc.sendEmailEventPublisher.Publish(ctx, sendEmailVerificationMessage); err != nil {
+		return nil, errors.Wrapf(err, "failed to publish send email verification: %v", sendEmailVerificationMessage)
 	}
 
 	storeUserImageTask := tasks.StoreUserImageTask{
+		UserUUID:    createdUser.UUID().String(),
 		ContentType: request.Image.Type,
 		Content:     request.Image.Content,
 		Name:        fmt.Sprintf("%s-image", createdUser.UUID()),
 		Bucket:      fmt.Sprintf("%s-documents", createdUser.UUID()),
 	}
 
-	storeImageMessage := messaging.Message{
-		Topic:       storeUserImageTask.Identity(),
-		Payload:     storeUserImageTask,
-		ContentType: "text/plain",
-	}
+	storeImageMessage := messaging.New(
+		messaging.MessageParams{
+			Topic:       storeUserImageTask.Identity(),
+			ContentType: "text/plain",
+			Payload:     storeUserImageTask,
+		},
+	)
 
 	// publish store image task
 	if err := svc.storeImageEventPublisher.Publish(ctx, storeImageMessage); err != nil {

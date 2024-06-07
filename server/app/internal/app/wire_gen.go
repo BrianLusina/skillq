@@ -50,7 +50,7 @@ func InitApp(mongodbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioC
 	mongodbMongoDBClient := di.ProvideUserVerificationMongoDbClient(mongodbConfig)
 	userVerificationRepoPort := userverificationrepo.New(mongodbMongoDBClient)
 	userVerificationService := usersvc.NewVerification(userService, userVerificationRepoPort)
-	emailClient := email.New(emailConfig)
+	emailClient := email.New(emailConfig, loggerLogger)
 	eventHandler := di.ProvideSendEmailVerificationTaskHandler(emailClient, userVerificationService, userRepoPort)
 	handlersEventHandler := di.ProvideStoreImageTaskHandler(storageClient, userRepoPort, amqpEventPublisher)
 	userApp := New(mongodbConfig, amqpConfig, minioConfig, emailConfig, loggerLogger, amqpClient, amqpEventPublisher, amqpEventConsumer, sendEmailEventPublisherPort, storeImageEventPublisherPort, storageClient, userRepoPort, mongoDBClient, userService, mongodbMongoDBClient, userVerificationRepoPort, userVerificationService, eventHandler, handlersEventHandler, emailClient)

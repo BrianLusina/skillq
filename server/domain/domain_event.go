@@ -1,6 +1,8 @@
 package sharedkernel
 
-import "time"
+import (
+	"time"
+)
 
 type (
 	DomainEvent interface {

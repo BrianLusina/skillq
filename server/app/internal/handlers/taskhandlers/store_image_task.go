@@ -36,7 +36,7 @@ func NewStoreImageTaskHandler(
 }
 
 func (h *storeUserImageTaskHandler) Handle(ctx context.Context, task *tasks.StoreUserImageTask) error {
-	h.logger.Infof("Received tasks store user image, %v", task)
+	h.logger.Infof("Received task store user image, %v", task)
 
 	userID, contentType, content, name, bucket := task.UserUUID, task.ContentType, task.Content, task.Name, task.Bucket
 	storageItem := storage.StorageItem{

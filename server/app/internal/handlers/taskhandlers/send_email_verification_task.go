@@ -66,7 +66,7 @@ func (h *sendEmailVerificationTaskHandler) Handle(ctx context.Context, task *tas
 	emailTemplate := templates.BuildEmailVerification(email, name, verification.Code())
 	err = h.emailClient.Send(email, emailTemplate)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to send email verification for user %s with error %v", userID, err)
+		errMsg := fmt.Sprintf("Failed to send email verification for user %s with error %v", userID, err)
 		h.logger.Error(errMsg)
 		return errors.Wrapf(err, "failed to send email verification for user %s with error %v", userID, err)
 	}

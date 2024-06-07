@@ -6,4 +6,5 @@ type EmailClientConfig struct {
 	Port     string
 	Password string
 	From     string
+	Enabled  bool
 }

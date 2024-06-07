@@ -136,10 +136,21 @@ func setupApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cf
 func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mongodb.MongoDBConfig, amqpConfig amqp.Config, minioConfig minio.Config, emailConfig email.EmailClientConfig) *app.App {
 	app, err := app.InitApp(mongoDbConfig, amqpConfig, minioConfig, emailConfig)
 	if err != nil {
-		slog.Error("failed init user app", err)
+		slog.Error("failed init app", err)
 		cancel()
 		<-ctx.Done()
 	}
+
+	app.StoreImageEventPublisher.Configure(
+		amqppublisher.Exchange(
+			amqp.ExchangeOptionParams{
+				Name:    "store-image-exchange",
+				Kind:    "fanout",
+				Durable: true,
+			},
+		),
+		amqppublisher.BindingKey("store-image-routing-key"),
+	)
 
 	// Configure publisher and start workers
 	app.SendEmailEventPublisher.Configure(
@@ -153,15 +164,25 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mo
 		amqppublisher.BindingKey("send-email-routing-key"),
 	)
 
-	app.StoreImageEventPublisher.Configure(
-		amqppublisher.Exchange(
+	app.AmqpEventConsumer.Configure(
+		amqpconsumer.Exchange(
 			amqp.ExchangeOptionParams{
 				Name:    "store-image-exchange",
 				Kind:    "fanout",
 				Durable: true,
 			},
 		),
-		amqppublisher.BindingKey("store-image-routing-key"),
+		amqpconsumer.Queue(
+			amqp.QueueOptionParams{
+				Name: "store-image-queue",
+			},
+		),
+		amqpconsumer.BindingKey("store-image-routing-key"),
+		amqpconsumer.Consumer(
+			amqp.ConsumerOptionParams{
+				Tag: "store-image-consumer",
+			},
+		),
 	)
 
 	app.AmqpEventConsumer.Configure(
@@ -188,7 +209,7 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mo
 	go func() {
 		err1 := app.AmqpEventConsumer.StartConsumer(app.Worker)
 		if err1 != nil {
-			slog.Error("failed to start user app Consumer", err1)
+			slog.Error("Failed to start app Consumer", err1)
 			cancel()
 			<-ctx.Done()
 		}

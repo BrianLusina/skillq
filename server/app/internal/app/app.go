@@ -9,7 +9,6 @@ import (
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/publishers"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/repositories"
 	"github.com/BrianLusina/skillq/server/app/internal/handlers"
-	"github.com/BrianLusina/skillq/server/app/pkg/events"
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
 	"github.com/BrianLusina/skillq/server/infra/clients/email"
 	"github.com/BrianLusina/skillq/server/infra/logger"
@@ -122,29 +121,29 @@ func New(
 
 func (app *App) Worker(ctx context.Context, messages <-chan rabbitmq.Delivery) {
 	for message := range messages {
-		app.Logger.Infof("Processing message with Tag: %s & Type: %s", message.DeliveryTag, message.Type)
+		app.Logger.Infof("Processing message with Tag %d & Type %s", message.DeliveryTag, message.Type)
 
 		switch message.Type {
-		case string(events.EmailVerificationStartedName):
+		case string(tasks.SendEmailVerificationName):
 			var payload tasks.SendEmailVerification
 
 			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {
-				app.Logger.Error("failed to Unmarshal message", err)
+				app.Logger.Errorf("Failed to Unmarshal message: %s", err)
 			}
 
 			err = app.SendEmailVerificationTaskHandler.Handle(ctx, &payload)
 
 			if err != nil {
 				if err = message.Reject(false); err != nil {
-					app.Logger.Error("failed to delivery.Reject", err)
+					app.Logger.Error("Failed to delivery.Reject with error %s", err.Error())
 				}
 
-				app.Logger.Error("failed to process delivery", err)
+				app.Logger.Error("Failed to process delivery with error %s", err.Error())
 			} else {
 				err = message.Ack(false)
 				if err != nil {
-					app.Logger.Error("failed to acknowledge delivery", err)
+					app.Logger.Error("Failed to acknowledge delivery with error %s", err.Error())
 				}
 			}
 
@@ -153,21 +152,21 @@ func (app *App) Worker(ctx context.Context, messages <-chan rabbitmq.Delivery) {
 
 			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {
-				app.Logger.Error("failed to Unmarshal message", err)
+				app.Logger.Errorf("Failed to Unmarshal message: %s", err)
 			}
 
 			err = app.StoreImageTaskHandler.Handle(ctx, &payload)
 
 			if err != nil {
 				if err = message.Reject(false); err != nil {
-					app.Logger.Error("failed to delivery.Reject", err)
+					app.Logger.Errorf("Failed to delivery.Reject with err: %s", err)
 				}
 
-				app.Logger.Error("failed to process delivery", err)
+				app.Logger.Error("Failed to process delivery with err: %s", err)
 			} else {
 				err = message.Ack(false)
 				if err != nil {
-					app.Logger.Error("failed to acknowledge delivery", err)
+					app.Logger.Errorf("Failed to acknowledge delivery with err: %s", err)
 				}
 			}
 		default:

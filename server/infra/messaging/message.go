@@ -9,34 +9,42 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Message is the message that is sent out to a topic
-type Message struct {
-	// ID is the message ID
-	ID string `json:"id"`
+type (
+	// Message is the message that is sent out to a topic
+	Message struct {
+		// ID is the message ID
+		ID string `json:"id"`
 
-	// Topic is the topic name this message is to be delivered on
-	Topic string `json:"topic"`
+		// Topic is the topic name this message is to be delivered on
+		Topic string `json:"topic"`
 
-	// ContentType is the content type of the message
-	ContentType string `json:"contentType"`
+		// ContentType is the content type of the message
+		ContentType string `json:"contentType"`
 
-	// Timestamp is the time the message was created
-	Timestamp time.Time `json:"timestamp"`
+		// Timestamp is the time the message was created
+		Timestamp time.Time `json:"timestamp"`
 
-	// Payload is the content of the message to be sent
-	Payload any `json:"payload"`
-}
+		// Payload is the content of the message to be sent
+		Payload any `json:"payload"`
+	}
+
+	MessageParams struct {
+		Topic       string
+		ContentType string
+		Payload     any
+	}
+)
 
 // New creates a new message
-func New(topic, contentType string, payload any) *Message {
+func New(params MessageParams) Message {
 	id := uuid.New().String()
 	timestamp := time.Now()
 
-	return &Message{
+	return Message{
 		ID:          id,
-		Topic:       topic,
-		ContentType: contentType,
-		Payload:     payload,
+		Topic:       params.Topic,
+		ContentType: params.ContentType,
+		Payload:     params.Payload,
 		Timestamp:   timestamp,
 	}
 }
@@ -53,6 +61,15 @@ func (m *Message) ToBytes() ([]byte, error) {
 		return nil, errors.Wrap(err, "failed to marshal message to bytes")
 	}
 	return eventBytes, nil
+}
+
+// ToBytes marshalls an event/task message to a byte slice
+func (m *Message) PayloadToBytes() ([]byte, error) {
+	payloadBytes, err := json.Marshal(m.Payload)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal message payload to bytes")
+	}
+	return payloadBytes, nil
 }
 
 // ConsumeMessage is the message that is consumed from a queue

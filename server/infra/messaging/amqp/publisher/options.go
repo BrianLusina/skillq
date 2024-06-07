@@ -8,25 +8,13 @@ type Option func(*amqpPublisherClient)
 // Exchange adds an exchange name to the publisher to be used when publishing messages
 func Exchange(params amqp.ExchangeOptionParams) Option {
 	return func(p *amqpPublisherClient) {
-		amqpChan, err := p.client.AmqpConn.Channel()
-		if err != nil {
-			p.logger.Errorf("Failed to open channel: %v", err)
-		}
-		defer amqpChan.Close()
-
-		err = amqpChan.ExchangeDeclare(
-			params.Name,
-			params.Kind,
-			params.Durable,
-			params.AutoDelete,
-			params.Internal,
-			params.NoWait,
-			params.Args,
-		)
-		if err != nil {
-			p.logger.Infof("Failed to declare exchange: %s, with kind: %s", params.Name, params.Kind)
-		}
 		p.exchangeName = params.Name
+		p.exchangeKind = params.Kind
+		p.exchangeDurable = params.Durable
+		p.exchangeAutoDelete = params.AutoDelete
+		p.exchangeInternal = params.Internal
+		p.exchangeNoWait = params.NoWait
+		p.exchangeArgs = params.Args
 	}
 }
 
