@@ -7,6 +7,7 @@ func (api *UserV1Api) RegisterHandlers(app *fiber.App) {
 	userApiGroup := app.Group("/api/v1/users")
 
 	userApiGroup.Post("/", api.HandleCreateUser)
+	userApiGroup.Post("/verify-email", api.HandleVerifyUserEmail)
 	userApiGroup.Get("/:id", api.HandleGetUserById)
 	userApiGroup.Get("/", api.HandleGetAllUsers)
 	userApiGroup.Get("/skill/:skill", api.HandleGetAllUsersBySkill)

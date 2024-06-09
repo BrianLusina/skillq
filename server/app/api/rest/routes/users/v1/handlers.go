@@ -142,3 +142,31 @@ func (api *UserV1Api) HandleDeleteUser(c *fiber.Ctx) error {
 		"Message": fmt.Sprintf("Successfully deleted user %s", userId),
 	})
 }
+
+// HandleVerifyUserEmail create a user
+func (api *UserV1Api) HandleVerifyUserEmail(c *fiber.Ctx) error {
+	ctx := c.Context()
+
+	payload := new(verifyEmailDto)
+	if err := c.BodyParser(payload); err != nil {
+		api.logger.Errorf("userapi/v1 verify email handler: failed to decode request: %v", err)
+		return err
+	}
+
+	userVerificationRequest := inbound.VerifyEmailRequest{
+		Code:   payload.Code,
+		UserID: payload.UserID,
+	}
+
+	err := api.userVerificationService.VerifyEmail(ctx, userVerificationRequest)
+	if err != nil {
+		// TODO: handle different types of error
+		api.logger.Errorf("handler: failed to verify user email: %v", err)
+
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"Message": "Successfully verified user email",
+	})
+}

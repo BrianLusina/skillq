@@ -122,7 +122,7 @@ func (repo *userRepoAdapter) UpdateUser(ctx context.Context, userToUpdate user.U
 			"name":     userToUpdate.Name(),
 			"email":    userToUpdate.Email(),
 			"jobTitle": userToUpdate.JobTitle(),
-			"url":      userToUpdate.ImageUrl(),
+			"imageUrl": userToUpdate.ImageUrl(),
 			"skills":   userToUpdate.Skills(),
 		},
 		FilterParams: mongodb.FilterParams{

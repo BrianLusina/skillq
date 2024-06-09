@@ -88,21 +88,12 @@ func setupApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cf
 		},
 	}
 
-	userMongodbConfig := mongodb.MongoDBConfig{
+	mongodbConfig := mongodb.MongoDBConfig{
 		Client: mongoDbConfig.Client,
 		DBConfig: mongodb.DatabaseConfig{
-			DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
-			CollectionName: "users",
+			DatabaseName: mongoDbConfig.DBConfig.DatabaseName,
 		},
 	}
-
-	// userVerificationMongodbConfig := mongodb.MongoDBConfig{
-	// 	Client: mongoDbConfig.Client,
-	// 	DBConfig: mongodb.DatabaseConfig{
-	// 		DatabaseName:   mongoDbConfig.DBConfig.DatabaseName,
-	// 		CollectionName: "userVerification",
-	// 	},
-	// }
 
 	amqpConfig := amqp.Config{
 		Username: cfg.RabbitMQ.Username,
@@ -126,10 +117,10 @@ func setupApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cf
 		From:     cfg.EmailConfig.From,
 	}
 
-	skillQApp := prepareApp(ctx, cancel, userMongodbConfig, amqpConfig, minioConfig, emailConfig)
+	skillQApp := prepareApp(ctx, cancel, mongodbConfig, amqpConfig, minioConfig, emailConfig)
 
 	// routing
-	userApi := userv1.NewUserApi(skillQApp.UserSvc, appLogger)
+	userApi := userv1.NewUserApi(skillQApp.UserSvc, skillQApp.UserVerificationSvc, appLogger)
 	userApi.RegisterHandlers(app)
 }
 
@@ -152,7 +143,6 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mo
 		amqppublisher.BindingKey("store-image-routing-key"),
 	)
 
-	// Configure publisher and start workers
 	app.SendEmailEventPublisher.Configure(
 		amqppublisher.Exchange(
 			amqp.ExchangeOptionParams{

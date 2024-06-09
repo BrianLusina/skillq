@@ -13,15 +13,3 @@ func BuildEmailVerification(to string, name string, code string) []byte {
 
 	return msg
 }
-
-func BuildEmailInvite(to string, receiverName string, senderName string) []byte {
-	frontendURL := os.Getenv("FRONTEND_URL")
-	link := frontendURL + "/dashboard"
-	msg := []byte("To: " + to + "\r\n" +
-		"Subject: SkillQ: You've been invited to a board!\r\n" +
-		"\r\n" +
-		"Hi " + receiverName + ",\n\n" +
-		"You've been invited to a board by " + senderName + ". You can accept or ignore the invitation from your dashboard: " + link + "\r\n")
-
-	return msg
-}

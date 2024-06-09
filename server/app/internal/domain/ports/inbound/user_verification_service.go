@@ -8,8 +8,8 @@ import (
 
 // VerifyEmailRequest defines the structure for verifying a user's email.
 type VerifyEmailRequest struct {
-	Code   string `json:"code" validate:"required,min=4,max=24"`
-	UserID string `json:"user_id" validate:"omitempty,required"`
+	Code   string
+	UserID string
 }
 
 // UserVerificationService contains a method set defining the logic to handle user verification in the system

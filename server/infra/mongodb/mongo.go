@@ -200,7 +200,7 @@ func (client *mongoDBClient[T]) Update(ctx context.Context, model T, updateOptio
 	}
 
 	if result.MatchedCount != 0 {
-		client.logger.Info("Matched and replaced an existing document")
+		client.logger.Info("Matched and replaced an existing document %v", model)
 	}
 
 	if result.UpsertedCount != 0 {

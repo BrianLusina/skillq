@@ -77,7 +77,7 @@ func (svc *userVerificationService) VerifyEmail(ctx context.Context, request inb
 		return errors.Wrapf(err, "failed to parse user UUID %s", userUUID)
 	}
 
-	verification, err := svc.userVerificationRepo.GetUserVerificationByUUID(ctx, userUUID)
+	verification, err := svc.userVerificationRepo.GetUserVerificationByCode(ctx, code)
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve user verification for code %s", code)
 	}

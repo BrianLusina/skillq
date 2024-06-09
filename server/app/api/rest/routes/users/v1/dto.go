@@ -32,3 +32,9 @@ type userImageDto struct {
 	ImageType string `json:"type" validate:"required"`
 	Content   string `json:"content" validate:"required"`
 }
+
+// verifyEmailDto defines the structure for verifying a user's email.
+type verifyEmailDto struct {
+	Code   string `json:"code" validate:"required,min=4,max=24"`
+	UserID string `json:"userId" validate:"omitempty,required"`
+}

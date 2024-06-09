@@ -74,15 +74,22 @@ func (sc *MinioStorageClient) Upload(ctx context.Context, item storage.StorageIt
 	info, err := sc.client.PutObject(ctx, bucket, item.Name, reader, reader.Size(), minio.PutObjectOptions{
 		ContentType:  item.ContentType,
 		UserMetadata: item.Metadata,
+		Progress:     reader,
 	})
 	if err != nil {
 		sc.log.Errorf("Failed to upload document: %v", err)
 		return "", errors.Wrapf(err, "failed to upload document")
 	}
 
+	if err := sc.client.SetBucketPolicy(ctx, bucket, ReadAndWritePolicyJson(bucket)); err != nil {
+		sc.log.Errorf("Failed to set bucket policy for bucket %s with error %s", bucket, err)
+	}
+
 	sc.log.Infof("Successfully uploaded document to bucket %s at location %s", info.Bucket, info.Location)
 
-	return info.Location, nil
+	loc := fmt.Sprintf("%s/%s/%s.%s", sc.client.EndpointURL(), bucket, item.Name, document.FileExtension)
+
+	return loc, nil
 }
 
 func (sc *MinioStorageClient) CreateBucket(ctx context.Context, bucket string) error {
