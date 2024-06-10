@@ -18,6 +18,9 @@ type StorageItem struct {
 
 	// Metadata is optional additional key value pair data
 	Metadata map[string]string
+
+	// PolicyType for a storage item
+	PolicyType PolicyType
 }
 
 // Document structure represents a document representation

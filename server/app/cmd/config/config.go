@@ -43,6 +43,7 @@ type (
 	}
 
 	MinioConfig struct {
+		PublicUrl       string `yaml:"publicUrl" env:"MINIO_PUBLIC_URL"`
 		Endpoint        string `yaml:"endpoint" env:"MINIO_ENDPOINT"`
 		Host            string `yaml:"host" env:"MINIO_HOST"`
 		Port            int    `yaml:"port" env:"MINIO_PORT"`

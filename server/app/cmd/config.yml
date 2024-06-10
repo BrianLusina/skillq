@@ -29,6 +29,7 @@ rabbitmq:
   url: amqp://guest:guest@127.0.0.1:5672/
 
 minio:
+  publicUrl: localhost:9001
   endpoint: localhost:9000
   host: localhost
   port: 9000

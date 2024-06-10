@@ -2,6 +2,9 @@ package minio
 
 // Config is the configuration for setting up a minio client
 type Config struct {
+	// PublicUrl is the public URL that is used as a base URL for public documents/images etc
+	PublicUrl string
+
 	// Endpoint is the Minio Host
 	Endpoint string
 

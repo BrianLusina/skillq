@@ -15,8 +15,9 @@ import (
 
 // MinioStorageClient is a wrapper around minio that enables interactions with a Minio cluster
 type MinioStorageClient struct {
-	client *minio.Client
-	log    logger.Logger
+	client    *minio.Client
+	log       logger.Logger
+	publicUrl string
 }
 
 // NewClient creates a new Minio Storage Client
@@ -43,8 +44,9 @@ func NewClient(config Config, log logger.Logger) (storage.StorageClient, error) 
 	}
 
 	return &MinioStorageClient{
-		client: client,
-		log:    log,
+		client:    client,
+		log:       log,
+		publicUrl: config.PublicUrl,
 	}, nil
 }
 
@@ -81,13 +83,26 @@ func (sc *MinioStorageClient) Upload(ctx context.Context, item storage.StorageIt
 		return "", errors.Wrapf(err, "failed to upload document")
 	}
 
-	if err := sc.client.SetBucketPolicy(ctx, bucket, ReadAndWritePolicyJson(bucket)); err != nil {
-		sc.log.Errorf("Failed to set bucket policy for bucket %s with error %s", bucket, err)
+	// set the policy
+	var policy string
+	switch item.PolicyType {
+	case storage.PolicyTypeReadOnly:
+		policy = ReadOnlyPolicyJson(bucket)
+	case storage.PolicyTypeReadAndWrite:
+		policy = ReadOnlyPolicyJson(bucket)
+	case storage.PolicyTypeWriteOnly:
+		policy = ReadOnlyPolicyJson(bucket)
+	default:
+		policy = ReadOnlyPolicyJson(bucket)
+	}
+
+	if err := sc.client.SetBucketPolicy(ctx, bucket, policy); err != nil {
+		sc.log.Errorf("Failed to set bucket policy of %s for bucket %s with error %s", item.PolicyType, bucket, err)
 	}
 
 	sc.log.Infof("Successfully uploaded document to bucket %s at location %s", info.Bucket, info.Location)
 
-	loc := fmt.Sprintf("%s/%s/%s.%s", sc.client.EndpointURL(), bucket, item.Name, document.FileExtension)
+	loc := fmt.Sprintf("%s/%s/%s.%s", sc.publicUrl, bucket, item.Name, document.FileExtension)
 
 	return loc, nil
 }

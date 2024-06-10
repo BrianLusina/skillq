@@ -62,8 +62,8 @@ func (sev *SendEmailVerification) String() string {
 	return fmt.Sprintf("SendEmailVerification(userUUID=%s, email=%s, name=%s)", sev.UserUUID, sev.Email, sev.Name)
 }
 
-// StoreUserImageTask is a task message that triggers the storage of a user image
-type StoreUserImageTask struct {
+// StoreUserImage is a task message that triggers the storage of a user image
+type StoreUserImage struct {
 	sharedkernel.DomainEvent
 	UserUUID    string `json:"userUUID"`
 	ContentType string `json:"contentType"`
@@ -72,10 +72,10 @@ type StoreUserImageTask struct {
 	Bucket      string `json:"bucket"`
 }
 
-func (st *StoreUserImageTask) Identity() string {
+func (st *StoreUserImage) Identity() string {
 	return string(StoreUserImageTaskName)
 }
 
-func (st *StoreUserImageTask) String() string {
+func (st *StoreUserImage) String() string {
 	return fmt.Sprintf("StoreUserImage(userUUID=%s, contentType=%s, name=%s, bucket=%s)", st.UserUUID, st.ContentType, st.Name, st.Bucket)
 }

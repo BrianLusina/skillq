@@ -4,32 +4,35 @@ import (
 	"context"
 
 	"github.com/BrianLusina/skillq/server/app/internal/domain/ports/outbound/publishers"
+	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
 	"github.com/BrianLusina/skillq/server/infra/messaging"
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 )
 
-type storeImageEventPublisherAdapter struct {
+type storeImageTaskPublisherAdapter struct {
 	pub amqppublisher.AmqpEventPublisher
 }
 
-// NewStoreImageEventPublisher creates a new store image event publisher
-func NewStoreImageEventPublisher(pub amqppublisher.AmqpEventPublisher) publishers.StoreImageEventPublisherPort {
-	return &storeImageEventPublisherAdapter{
+// NewStoreImageTaskPublisher creates a new store image event publisher
+func NewStoreImageTaskPublisher(pub amqppublisher.AmqpEventPublisher) publishers.TaskPublisher[tasks.StoreUserImage] {
+	return &storeImageTaskPublisherAdapter{
 		pub: pub,
 	}
 }
 
 // Publish implements publishers.StoreImageEventPublisherPort.
-func (s *storeImageEventPublisherAdapter) Publish(ctx context.Context, message messaging.Message) error {
-	return s.pub.Publish(ctx, message)
+func (s *storeImageTaskPublisherAdapter) Publish(ctx context.Context, message tasks.StoreUserImage) error {
+	storeImageMessage := messaging.New(
+		messaging.MessageParams{
+			Topic:       message.Identity(),
+			ContentType: "text/plain",
+			Payload:     message,
+		},
+	)
+	return s.pub.Publish(ctx, storeImageMessage)
 }
 
 // Configure implements publishers.StoreImageEventPublisherPort.
-func (s *storeImageEventPublisherAdapter) Configure(opts ...amqppublisher.Option) amqppublisher.AmqpEventPublisher {
-	return s.pub.Configure(opts...)
-}
-
-// Close implements publishers.StoreImageEventPublisherPort.
-func (s *storeImageEventPublisherAdapter) Close() error {
-	return s.pub.Close()
+func (s *storeImageTaskPublisherAdapter) Configure(opts ...amqppublisher.Option) {
+	s.pub.Configure(opts...)
 }

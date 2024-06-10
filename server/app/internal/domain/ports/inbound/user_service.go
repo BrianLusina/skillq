@@ -62,9 +62,6 @@ type UserService interface {
 	// UpdateUser updates a user given their ID
 	UpdateUser(ctx context.Context, userID string, request UserRequest) (*UserResponse, error)
 
-	// UpdateUserImage updates a user's image
-	// UpdateUserImage(ctx context.Context, userID, url string) error
-
 	// DeleteUser deletes a user given their ID
 	DeleteUser(context.Context, string) error
 }

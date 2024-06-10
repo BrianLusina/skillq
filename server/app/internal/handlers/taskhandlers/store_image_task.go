@@ -20,14 +20,14 @@ type storeUserImageTaskHandler struct {
 	logger        logger.Logger
 }
 
-var _ handlers.EventHandler[tasks.StoreUserImageTask] = (*storeUserImageTaskHandler)(nil)
+var _ handlers.EventHandler[tasks.StoreUserImage] = (*storeUserImageTaskHandler)(nil)
 
 func NewStoreImageTaskHandler(
 	storageClient storage.StorageClient,
 	userRepo repositories.UserRepoPort,
 	messagePublisher amqppublisher.AmqpEventPublisher,
 	logger logger.Logger,
-) handlers.EventHandler[tasks.StoreUserImageTask] {
+) handlers.EventHandler[tasks.StoreUserImage] {
 	return &storeUserImageTaskHandler{
 		storageClient: storageClient,
 		userRepo:      userRepo,
@@ -35,7 +35,7 @@ func NewStoreImageTaskHandler(
 	}
 }
 
-func (h *storeUserImageTaskHandler) Handle(ctx context.Context, task *tasks.StoreUserImageTask) error {
+func (h *storeUserImageTaskHandler) Handle(ctx context.Context, task *tasks.StoreUserImage) error {
 	h.logger.Infof("Received task store user image, %v", task)
 
 	userID, contentType, content, name, bucket := task.UserUUID, task.ContentType, task.Content, task.Name, task.Bucket
@@ -44,6 +44,7 @@ func (h *storeUserImageTaskHandler) Handle(ctx context.Context, task *tasks.Stor
 		Content:     content,
 		Name:        name,
 		Bucket:      bucket,
+		PolicyType:  storage.PolicyTypeReadOnly,
 	}
 
 	url, err := h.storageClient.Upload(ctx, storageItem)

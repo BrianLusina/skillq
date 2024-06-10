@@ -39,8 +39,8 @@ type (
 		AmqpEventPublisher amqppublisher.AmqpEventPublisher
 		AmqpEventConsumer  amqpconsumer.AmqpEventConsumer
 
-		SendEmailEventPublisher  publishers.SendEmailEventPublisherPort
-		StoreImageEventPublisher publishers.StoreImageEventPublisherPort
+		SendEmailTaskPublisher  publishers.TaskPublisher[tasks.SendEmailVerification]
+		StoreImageTaskPublisher publishers.TaskPublisher[tasks.StoreUserImage]
 
 		StorageClient storage.StorageClient
 
@@ -51,7 +51,7 @@ type (
 		UserVerificationSvc           inbound.UserVerificationService
 
 		SendEmailVerificationTaskHandler handlers.EventHandler[tasks.SendEmailVerification]
-		StoreImageTaskHandler            handlers.EventHandler[tasks.StoreUserImageTask]
+		StoreImageTaskHandler            handlers.EventHandler[tasks.StoreUserImage]
 
 		EmailClient email.EmailClient
 	}
@@ -70,8 +70,8 @@ func New(
 	amqpEventPublisher amqppublisher.AmqpEventPublisher,
 	amqpEventConsumer amqpconsumer.AmqpEventConsumer,
 
-	sendEmailEventPublisher publishers.SendEmailEventPublisherPort,
-	storeImageEventPublisher publishers.StoreImageEventPublisherPort,
+	sendEmailEventPublisher publishers.TaskPublisher[tasks.SendEmailVerification],
+	storeImageEventPublisher publishers.TaskPublisher[tasks.StoreUserImage],
 
 	storageClient storage.StorageClient,
 
@@ -85,7 +85,7 @@ func New(
 
 	sendEmailVerificationHandler handlers.EventHandler[tasks.SendEmailVerification],
 
-	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImageTask],
+	storeImageTaskHandler handlers.EventHandler[tasks.StoreUserImage],
 
 	emailClient email.EmailClient,
 ) *App {
@@ -100,8 +100,8 @@ func New(
 		AmqpEventPublisher: amqpEventPublisher,
 		AmqpEventConsumer:  amqpEventConsumer,
 
-		SendEmailEventPublisher:  sendEmailEventPublisher,
-		StoreImageEventPublisher: storeImageEventPublisher,
+		SendEmailTaskPublisher:  sendEmailEventPublisher,
+		StoreImageTaskPublisher: storeImageEventPublisher,
 
 		StorageClient: storageClient,
 
@@ -148,7 +148,7 @@ func (app *App) Worker(ctx context.Context, messages <-chan rabbitmq.Delivery) {
 			}
 
 		case string(tasks.StoreUserImageTaskName):
-			var payload tasks.StoreUserImageTask
+			var payload tasks.StoreUserImage
 
 			err := json.Unmarshal(message.Body, &payload)
 			if err != nil {

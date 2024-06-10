@@ -1,18 +1,21 @@
 package publishers
 
 import (
+	"context"
+
 	amqppublisher "github.com/BrianLusina/skillq/server/infra/messaging/amqp/publisher"
 )
 
 type (
-
-	// SendEmailPublisher is a publisher for sending events/tasks/messages to a queue that handles sending of emails
-	SendEmailEventPublisherPort interface {
-		amqppublisher.AmqpEventPublisher
+	// EventPublisher publishes events that have already happened in the system and that may be useful for other consumers to listen on
+	EventPublisher[T any] interface {
+		Publish(ctx context.Context, message T) error
+		Configure(...amqppublisher.Option)
 	}
 
-	// StoreImageEventPublisherPort is a publisher for sending events/tasks/messages to a queue that handles storing of images
-	StoreImageEventPublisherPort interface {
-		amqppublisher.AmqpEventPublisher
+	// TaskPublisher publishes a task that is to be processed and used
+	TaskPublisher[T any] interface {
+		Publish(ctx context.Context, message T) error
+		Configure(...amqppublisher.Option)
 	}
 )

@@ -103,6 +103,7 @@ func setupApp(ctx context.Context, cancel context.CancelFunc, app *fiber.App, cf
 	}
 
 	minioConfig := minio.Config{
+		PublicUrl:       cfg.MinioConfig.PublicUrl,
 		Endpoint:        cfg.MinioConfig.Endpoint,
 		AccessKeyID:     cfg.MinioConfig.AccessKeyID,
 		SecretAccessKey: cfg.MinioConfig.SecretAccessKey,
@@ -132,7 +133,7 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mo
 		<-ctx.Done()
 	}
 
-	app.StoreImageEventPublisher.Configure(
+	app.StoreImageTaskPublisher.Configure(
 		amqppublisher.Exchange(
 			amqp.ExchangeOptionParams{
 				Name:    "store-image-exchange",
@@ -143,7 +144,7 @@ func prepareApp(ctx context.Context, cancel context.CancelFunc, mongoDbConfig mo
 		amqppublisher.BindingKey("store-image-routing-key"),
 	)
 
-	app.SendEmailEventPublisher.Configure(
+	app.SendEmailTaskPublisher.Configure(
 		amqppublisher.Exchange(
 			amqp.ExchangeOptionParams{
 				Name:    "send-email-exchange",

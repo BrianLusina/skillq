@@ -13,7 +13,6 @@ import (
 	"github.com/BrianLusina/skillq/server/app/pkg/tasks"
 	"github.com/BrianLusina/skillq/server/domain/entity"
 	"github.com/BrianLusina/skillq/server/domain/id"
-	"github.com/BrianLusina/skillq/server/infra/messaging"
 	"github.com/BrianLusina/skillq/server/infra/storage"
 	"github.com/BrianLusina/skillq/server/utils/security"
 	"github.com/BrianLusina/skillq/server/utils/tools"
@@ -22,10 +21,10 @@ import (
 
 // userService is the structure for the business logic handling user management
 type userService struct {
-	userRepo                 repositories.UserRepoPort
-	sendEmailEventPublisher  publishers.SendEmailEventPublisherPort
-	storeImageEventPublisher publishers.StoreImageEventPublisherPort
-	storageClient            storage.StorageClient
+	userRepo                repositories.UserRepoPort
+	sendEmailTaskPublisher  publishers.TaskPublisher[tasks.SendEmailVerification]
+	storeImageTaskPublisher publishers.TaskPublisher[tasks.StoreUserImage]
+	storageClient           storage.StorageClient
 }
 
 var _ inbound.UserService = (*userService)(nil)
@@ -33,15 +32,15 @@ var _ inbound.UserService = (*userService)(nil)
 // New creates a new user service implementation of the user use case
 func New(
 	userRepo repositories.UserRepoPort,
-	sendEmailEventPublisher publishers.SendEmailEventPublisherPort,
-	storeImageEventPublisher publishers.StoreImageEventPublisherPort,
+	sendEmailTaskPublisher publishers.TaskPublisher[tasks.SendEmailVerification],
+	storeImageTaskPublisher publishers.TaskPublisher[tasks.StoreUserImage],
 	storageClient storage.StorageClient,
 ) inbound.UserService {
 	return &userService{
-		userRepo:                 userRepo,
-		sendEmailEventPublisher:  sendEmailEventPublisher,
-		storeImageEventPublisher: storeImageEventPublisher,
-		storageClient:            storageClient,
+		userRepo:                userRepo,
+		sendEmailTaskPublisher:  sendEmailTaskPublisher,
+		storeImageTaskPublisher: storeImageTaskPublisher,
+		storageClient:           storageClient,
 	}
 }
 
@@ -89,20 +88,12 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		Name:     createdUser.Name(),
 	}
 
-	sendEmailVerificationMessage := messaging.New(
-		messaging.MessageParams{
-			Topic:       sendEmailVerification.Identity(),
-			ContentType: "text/plain",
-			Payload:     sendEmailVerification,
-		},
-	)
-
 	// publish event
-	if err := svc.sendEmailEventPublisher.Publish(ctx, sendEmailVerificationMessage); err != nil {
-		return nil, errors.Wrapf(err, "failed to publish send email verification: %v", sendEmailVerificationMessage)
+	if err := svc.sendEmailTaskPublisher.Publish(ctx, sendEmailVerification); err != nil {
+		return nil, errors.Wrapf(err, "failed to publish send email verification: %v", sendEmailVerification)
 	}
 
-	storeUserImageTask := tasks.StoreUserImageTask{
+	storeUserImageTask := tasks.StoreUserImage{
 		UserUUID:    createdUser.UUID().String(),
 		ContentType: request.Image.Type,
 		Content:     request.Image.Content,
@@ -110,17 +101,9 @@ func (svc *userService) CreateUser(ctx context.Context, request inbound.UserRequ
 		Bucket:      fmt.Sprintf("%s-documents", createdUser.UUID()),
 	}
 
-	storeImageMessage := messaging.New(
-		messaging.MessageParams{
-			Topic:       storeUserImageTask.Identity(),
-			ContentType: "text/plain",
-			Payload:     storeUserImageTask,
-		},
-	)
-
 	// publish store image task
-	if err := svc.storeImageEventPublisher.Publish(ctx, storeImageMessage); err != nil {
-		return nil, errors.Wrapf(err, "failed to publish store user image task: %v", storeImageMessage)
+	if err := svc.storeImageTaskPublisher.Publish(ctx, storeUserImageTask); err != nil {
+		return nil, errors.Wrapf(err, "failed to publish store user image task: %v", storeUserImageTask)
 	}
 
 	// update user image in response
@@ -148,6 +131,7 @@ func (svc *userService) UploadUserImage(ctx context.Context, userUUID id.UUID, i
 		Content:     imageData.Content,
 		Name:        fmt.Sprintf("%s-image", userUUID),
 		Bucket:      fmt.Sprintf("%s-documents", userUUID),
+		PolicyType:  storage.PolicyTypeReadOnly,
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to store user image")
