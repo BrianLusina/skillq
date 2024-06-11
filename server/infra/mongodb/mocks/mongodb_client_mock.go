@@ -56,6 +56,21 @@ func (mr *MockMongoDBClientMockRecorder[T]) BulkInsert(ctx, models any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BulkInsert", reflect.TypeOf((*MockMongoDBClient[T])(nil).BulkInsert), ctx, models)
 }
 
+// CreateIndex mocks base method.
+func (m *MockMongoDBClient[T]) CreateIndex(ctx context.Context, indexParam mongodb.IndexParam) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateIndex", ctx, indexParam)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateIndex indicates an expected call of CreateIndex.
+func (mr *MockMongoDBClientMockRecorder[T]) CreateIndex(ctx, indexParam any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIndex", reflect.TypeOf((*MockMongoDBClient[T])(nil).CreateIndex), ctx, indexParam)
+}
+
 // Delete mocks base method.
 func (m *MockMongoDBClient[T]) Delete(ctx context.Context, keyName, id string) error {
 	m.ctrl.T.Helper()

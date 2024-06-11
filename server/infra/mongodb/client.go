@@ -28,4 +28,7 @@ type MongoDBClient[T any] interface {
 
 	// Disconnect disconnects from the current connection
 	Disconnect(context.Context) error
+
+	// CreateIndex creates unique index for the given keys
+	CreateIndex(ctx context.Context, indexParam IndexParam) (string, error)
 }

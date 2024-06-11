@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/BrianLusina/skillq/server/infra/logger"
@@ -74,6 +75,41 @@ func (client *mongoDBClient[T]) Insert(ctx context.Context, model T) (primitive.
 	}
 
 	return oid, nil
+}
+
+func (client *mongoDBClient[T]) CreateIndex(ctx context.Context, indexParam IndexParam) (string, error) {
+	keys := bson.D{}
+	indexKeys := []string{}
+	for _, keyParam := range indexParam.Keys {
+		keys = append(keys, bson.E{
+			Key:   keyParam.Key,
+			Value: keyParam.Value,
+		})
+		indexKeys = append(indexKeys, keyParam.Key)
+	}
+
+	indexName := ""
+	if indexParam.Name == "" {
+		indexName = strings.Join(indexKeys, "_")
+	} else {
+		indexName = indexParam.Name
+	}
+
+	indexModel := mongo.IndexModel{
+		Keys: keys,
+		Options: options.Index().
+			SetUnique(true).
+			SetName(indexName),
+	}
+
+	indexName, err := client.collection.Indexes().CreateOne(ctx, indexModel)
+	if err != nil {
+		client.logger.Errorf("Failed to create new index for keys with error %s", err)
+		return "", err
+	}
+
+	client.logger.Infof("Successfully created new index %s", indexName)
+	return indexName, nil
 }
 
 func (client *mongoDBClient[T]) BulkInsert(ctx context.Context, models []any) ([]primitive.ObjectID, error) {

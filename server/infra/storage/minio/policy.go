@@ -15,7 +15,7 @@ func ReadOnlyPolicyJson(bucket string) string {
 				"Sid": "",
 				"Principal": {"AWS": ["*"]},
 				"Resource": %s,
-			},
+			}
 		]
 	}`, resource)
 }

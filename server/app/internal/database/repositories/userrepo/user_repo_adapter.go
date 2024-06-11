@@ -3,6 +3,7 @@ package userrepo
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
@@ -25,9 +26,31 @@ var _ repositories.UserRepoPort = (*userRepoAdapter)(nil)
 
 // New creates a new user repository adapter
 func New(dbClient mongodb.MongoDBClient[models.UserModel]) repositories.UserRepoPort {
-	return &userRepoAdapter{
+	repoAdapter := &userRepoAdapter{
 		dbClient: dbClient,
 	}
+
+	defer func() {
+		name, err := dbClient.CreateIndex(context.Background(), mongodb.IndexParam{
+			Keys: []mongodb.KeyParam{
+				{
+					Key:   "email",
+					Value: 1,
+				},
+				{
+					Key:   "name",
+					Value: 1,
+				},
+			},
+			Name: "user_email_name_idx",
+		})
+		if err != nil {
+			slog.Error("Failed to create index 'user_email_name_idx' with error ", err)
+		}
+		slog.Info("Successfully created", "index", name)
+	}()
+
+	return repoAdapter
 }
 
 // CreateUser creates a user in the repository

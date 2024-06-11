@@ -50,3 +50,22 @@ type FilterParams struct {
 	// Value is the value of the field to query the document
 	Value any
 }
+
+// KeParam
+type KeyParam struct {
+	// Key is the name of the field in the document
+	Key string
+
+	// Value indicates the order that is going to be applied to a key.
+	// If used for index creation, in the index for the given key, 1 sets in ascending order -1 sets it in descending order
+	Value any
+}
+
+// IndexParam is used to create unique index for a given key
+type IndexParam struct {
+	// Keys to apply an index to
+	Keys []KeyParam
+
+	// Name is the name of the index
+	Name string
+}
