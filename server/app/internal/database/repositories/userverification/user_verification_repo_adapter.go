@@ -2,6 +2,7 @@ package userverificationrepo
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/BrianLusina/skillq/server/app/internal/database/models"
 	"github.com/BrianLusina/skillq/server/app/internal/domain/entities/user"
@@ -21,6 +22,31 @@ var _ repositories.UserVerificationRepoPort = (*userVerificationRepoAdapter)(nil
 
 // New creates a new user verification repository adapter
 func New(dbClient mongodb.MongoDBClient[models.UserVerificationModel]) repositories.UserVerificationRepoPort {
+
+	defer func() {
+		name, err := dbClient.CreateIndex(context.Background(), mongodb.IndexParam{
+			Keys: []mongodb.KeyParam{
+				{
+					Key:   "uuid",
+					Value: 1,
+				},
+				{
+					Key:   "code",
+					Value: 1,
+				},
+				{
+					Key:   "user_id",
+					Value: 1,
+				},
+			},
+			Name: "user_verification_uuid_code_user_id_idx",
+		})
+		if err != nil {
+			slog.Error("Failed to create index 'user_verification_uuid_code_user_id_idx' with error ", err)
+		}
+		slog.Info("Successfully created", "index", name)
+	}()
+
 	return &userVerificationRepoAdapter{
 		dbClient: dbClient,
 	}
@@ -87,7 +113,7 @@ func (repo *userVerificationRepoAdapter) UpdateUserVerification(ctx context.Cont
 		},
 		FilterParams: mongodb.FilterParams{
 			Key:   "uuid",
-			Value: userVerification.UUID,
+			Value: userVerification.BaseModel.UUID,
 		},
 	})
 

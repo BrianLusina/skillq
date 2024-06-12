@@ -98,6 +98,8 @@ func (sc *MinioStorageClient) Upload(ctx context.Context, item storage.StorageIt
 
 	if err := sc.client.SetBucketPolicy(ctx, bucket, policy); err != nil {
 		sc.log.Errorf("Failed to set bucket policy of %s for bucket %s with error %s", item.PolicyType, bucket, err)
+	} else {
+		sc.log.Infof("Successfully created bucket policy of %s for bucket %s", item.PolicyType, bucket)
 	}
 
 	sc.log.Infof("Successfully uploaded document to bucket %s at location %s", info.Bucket, info.Location)

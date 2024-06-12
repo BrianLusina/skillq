@@ -9,10 +9,12 @@ import (
 // mapUserVerificationToModel maps a user entity to a user model
 func mapUserVerificationToModel(userVerificationEntity user.UserVerification) models.UserVerificationModel {
 	return models.UserVerificationModel{
-		UUID:       userVerificationEntity.ID().String(),
+		BaseModel: models.BaseModel{
+			UUID:      userVerificationEntity.ID().String(),
+			CreatedAt: userVerificationEntity.CreatedAt(),
+			UpdatedAt: userVerificationEntity.UpdatedAt(),
+		},
 		UserId:     userVerificationEntity.UserID().String(),
-		CreatedAt:  userVerificationEntity.CreatedAt(),
-		UpdatedAt:  userVerificationEntity.UpdatedAt(),
 		Code:       userVerificationEntity.Code(),
 		IsVerified: userVerificationEntity.IsVerified(),
 	}
@@ -20,7 +22,7 @@ func mapUserVerificationToModel(userVerificationEntity user.UserVerification) mo
 
 // mapUserToModel maps a user entity to a user model
 func mapUserVerificationModelToEntity(userVerificationModel models.UserVerificationModel) (user.UserVerification, error) {
-	uuid, err := id.StringToUUID(userVerificationModel.UUID)
+	uuid, err := id.StringToUUID(userVerificationModel.BaseModel.UUID)
 	if err != nil {
 		return user.UserVerification{}, err
 	}
@@ -33,8 +35,8 @@ func mapUserVerificationModelToEntity(userVerificationModel models.UserVerificat
 	return user.NewVerification(user.UserVerificationParams{
 		ID:         uuid,
 		UserId:     userId,
-		CreatedAt:  userVerificationModel.CreatedAt,
-		UpdatedAt:  userVerificationModel.UpdatedAt,
+		CreatedAt:  userVerificationModel.BaseModel.CreatedAt,
+		UpdatedAt:  userVerificationModel.BaseModel.UpdatedAt,
 		Code:       userVerificationModel.Code,
 		IsVerified: userVerificationModel.IsVerified,
 	}), nil

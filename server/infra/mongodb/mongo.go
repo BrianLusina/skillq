@@ -186,15 +186,23 @@ func (client *mongoDBClient[T]) FindAll(ctx context.Context, filterOptions Filte
 		SetSort(sortValues)
 	cursor, err := client.collection.Find(ctx, filterValues, opts)
 	if err != nil {
+		client.logger.Errorf("Failed to retrieve cursor with error %s", err)
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+
+	defer func() {
+		err := cursor.Close(ctx)
+		if err != nil {
+			client.logger.Warn(fmt.Sprintf("Failed to close cursor with error %s", err))
+		}
+	}()
 
 	results := []T{}
 	for cursor.Next(ctx) {
 		var model T
 		err := cursor.Decode(&model)
 		if err != nil {
+			client.logger.Errorf("Failed to decode result with error %s", err)
 			return nil, errors.Wrapf(err, "failed to decode result")
 		}
 		results = append(results, model)
@@ -232,6 +240,7 @@ func (client *mongoDBClient[T]) Update(ctx context.Context, model T, updateOptio
 
 	result, err := client.collection.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
+		client.logger.Errorf("Failed to update item %v with error %s", err)
 		return errors.Wrapf(err, "failed to update item %v", model)
 	}
 
