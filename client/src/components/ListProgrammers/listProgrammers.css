@@ -1,0 +1,76 @@
+.container {
+  display: flex;
+  width: 100%;
+  background-color:#c9c9c937;
+  border: 1px solid #cccccc4c;
+  margin: 50px 50px 0px 50px;
+}
+
+.imageColumn {
+  flex: 3;
+  text-align: center;
+  padding: 30px;
+}
+
+.userImage {
+  width: 400px;
+  height: 250px;
+  object-fit: contain;
+}
+
+.infoColumn {
+  flex: 9;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.userName {
+  flex-basis: 100%;
+}
+
+.jobTitle {
+  flex-basis: 50%;
+  text-align: left;
+}
+
+.email {
+  flex-basis: 50%;
+  text-align: right;
+}
+
+.skills {
+  display: flex;
+}
+
+.skillBox {
+  background-color: #A2A3A0;
+  border: 1px solid #cccccc4c;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-right: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.skillBox:hover {
+  background-color: #4caf50;
+  cursor: default;
+}
+
+.deleteButton {
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}

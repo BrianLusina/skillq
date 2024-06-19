@@ -1,0 +1,129 @@
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 90vh;
+}
+
+.addProgrammerHeading {
+  text-align: center;
+  font-size: 30px;
+  margin-bottom: 30px;
+  color: #4caf50;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f7f7f7;
+}
+
+.alignSameLine {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.alignSkillsItems {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
+
+label {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  margin-bottom: 10px;
+  margin-right: 20px;
+  width: 60px;
+  min-width: 60px;
+}
+
+input {
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 90%;
+  box-sizing: border-box;
+}
+
+.skillInput {
+  height: 35px;
+}
+
+.skillButton {
+  height: 35px;
+  margin-left: 15px;
+  width: 150px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+input[type="file"] {
+  margin-bottom: 20px;
+}
+
+.submitButton {
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+li {
+  margin-right: 10px;
+  margin-bottom: 5px;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f7f7f7;
+}
+
+.error-message {
+  color: red;
+  margin-bottom: 10px;
+}
+
+.skillsMessage {
+  color: red;
+  margin-bottom: 20px;
+}
+
+.tooltip {
+  display: none;
+  background-color: #f9f9f9;
+  color: #000;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 0 6px 0 rgba(0, 0, 0, 0.1);
+}
+
+.imageInput:hover + .tooltip {
+  display: block;
+}

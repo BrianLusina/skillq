@@ -1,0 +1,17 @@
+.searchContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin: 30px 50px 0px 50px;
+}
+
+.submitButton {
+  height: 35px;
+  margin-left: 15px;
+  width: 100px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}

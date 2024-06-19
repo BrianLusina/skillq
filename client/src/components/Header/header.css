@@ -1,0 +1,34 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  height: 40px;
+  background-color: #4caf50;
+}
+
+.appTitle {
+  color: white;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.appProgrammer {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  margin-right: 30px;
+  cursor: pointer;
+}
+
+.left h1 {
+  margin: 0;
+}
+
+.right {
+  margin-left: auto;
+}
+
+.addButton {
+  border: none;
+}
