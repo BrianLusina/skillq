@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useState } from "react";
-import axios from "axios";
+import { createUser } from "../../api";
 import "./addProgrammer.css";
 
 const AddProgrammer = () => {
@@ -31,15 +31,12 @@ const AddProgrammer = () => {
             // Convert image to a string
             const image = await readFileAsBase64(imageFile);
 
-            // Send a POST request to the back-end API to create a new user
-            axios
-                .post("/users/create", { name, email, jobTitle, image, skills })
-                .then((response) => {
-                    console.log(response);
-                })
-                .catch((error) => {
-                    console.log(error);
-                });
+            const imageRequest = {
+                type: "image/png",
+                image
+            }
+
+            await createUser({ name, email, jobTitle, image: imageRequest, skills })
 
             // Reset the form values
             setName("");
@@ -54,7 +51,7 @@ const AddProgrammer = () => {
     }
 
     // Helper function to read the image file as a base64 string
-    const readFileAsBase64 = (file: File) => {
+    const readFileAsBase64 = (file: File): Promise<string | ArrayBuffer | null> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);

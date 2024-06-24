@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import ListProgrammers from '../../components/ListProgrammers';
 import { fetchProgrammers, filterProgrammersBySkill } from '../../api';
 
-import "./styles.css"
+import "./home.css"
 
 const Home = () => {
   const [searchSkill, setSearchSkill] = useState('');

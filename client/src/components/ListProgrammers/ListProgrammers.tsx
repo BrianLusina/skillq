@@ -25,7 +25,7 @@ const ListProgrammers: FunctionComponent<ListProgrammersProps> = ({programmers, 
           <>
             {
               programmers.map((user) => (
-                <div className="container">
+                <div key={user.uuid} className="container">
                   <div className="imageColumn">
                     <img className='userImage' src={user.imageUrl} alt="User Identity" />
                   </div>
@@ -58,7 +58,7 @@ const ListProgrammers: FunctionComponent<ListProgrammersProps> = ({programmers, 
                     </div>
                     
                     <div className="row" style={{marginTop: "20px"}}>
-                      <button type="submit" className='deleteButton' onClick={() => handleDeleteUser(user.id)}>Delete User</button>
+                      <button type="submit" className='deleteButton' onClick={() => handleDeleteUser(user.uuid)}>Delete User</button>
                     </div>
                   </div>
                 </div>

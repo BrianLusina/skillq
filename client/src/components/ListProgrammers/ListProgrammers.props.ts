@@ -1,5 +1,7 @@
 type User = {
-    id: string;
+    xid: string;
+    uuid: string;
+    keyId: string;
     imageUrl: string;
     name: string;
     jobTitle: string;
